@@ -1,0 +1,154 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`tool schema snapshot > captures the public surface of every registered tool 1`] = `
+[
+  {
+    "name": "b3os_balance_lookup",
+    "signature": "Call signature: { address: string, chainIds?: number[], limit?: number, offset?: number }",
+  },
+  {
+    "name": "b3os_build_workflow",
+    "signature": "Call signature: { message: string, workflowId?: string, definition?: object }",
+  },
+  {
+    "name": "b3os_cancel_run",
+    "signature": "Call signature: { runId: string }",
+  },
+  {
+    "name": "b3os_create_workflow",
+    "signature": "Call signature: { name: string, description: string, definition: object }",
+  },
+  {
+    "name": "b3os_debug_run",
+    "signature": "Call signature: { runId: string, message?: string }",
+  },
+  {
+    "name": "b3os_debug_transaction",
+    "signature": "Call signature: { txHash: string, chainId: number }",
+  },
+  {
+    "name": "b3os_defi_lookup",
+    "signature": "Call signature: { address: string, chainId?: number }",
+  },
+  {
+    "name": "b3os_delete_workflow",
+    "signature": "Call signature: { workflowId: string, confirm: true }",
+  },
+  {
+    "name": "b3os_get_action",
+    "signature": "Call signature: { type: string }",
+  },
+  {
+    "name": "b3os_get_run",
+    "signature": "Call signature: { runId: string, summary?: boolean, nodeIds?: string[] }",
+  },
+  {
+    "name": "b3os_get_table_schema",
+    "signature": "Call signature: { orgId: string, tableName: string }",
+  },
+  {
+    "name": "b3os_get_trigger",
+    "signature": "Call signature: { type: string }",
+  },
+  {
+    "name": "b3os_get_workflow",
+    "signature": "Call signature: { workflowId: string }",
+  },
+  {
+    "name": "b3os_list_actions",
+    "signature": "Call signature: { tags?: string, limit?: number }",
+  },
+  {
+    "name": "b3os_list_connectors",
+    "signature": "Call signature: {}",
+  },
+  {
+    "name": "b3os_list_runs",
+    "signature": "Call signature: { workflowId?: string, status?: "running"|"success"|"failure"|"waiting"|"cancelled", limit?: number, offset?: number }",
+  },
+  {
+    "name": "b3os_list_slack_channels",
+    "signature": "Call signature: { connectorId: string }",
+  },
+  {
+    "name": "b3os_list_tables",
+    "signature": "Call signature: { orgId: string }",
+  },
+  {
+    "name": "b3os_list_telegram_chats",
+    "signature": "Call signature: { connectorId?: string, query?: string }",
+  },
+  {
+    "name": "b3os_list_triggers",
+    "signature": "Call signature: { tags?: string }",
+  },
+  {
+    "name": "b3os_list_wallets",
+    "signature": "Call signature: { orgId: string }",
+  },
+  {
+    "name": "b3os_list_workflows",
+    "signature": "Call signature: { status?: "draft"|"active"|"paused"|"archived", limit?: number, offset?: number }",
+  },
+  {
+    "name": "b3os_pause_workflow",
+    "signature": "Call signature: { workflowId: string }",
+  },
+  {
+    "name": "b3os_polymarket_lookup",
+    "signature": "Call signature: { query?: string, slug?: string, marketUrl?: string }",
+  },
+  {
+    "name": "b3os_price_lookup",
+    "signature": "Call signature: { coinIds: string[], vsCurrencies?: string[] }",
+  },
+  {
+    "name": "b3os_publish_workflow",
+    "signature": "Call signature: { workflowId: string, expectedVersion?: number }",
+  },
+  {
+    "name": "b3os_query_action",
+    "signature": "Call signature: { actionType: string, payload: unknown }",
+  },
+  {
+    "name": "b3os_query_database",
+    "signature": "Call signature: { orgId: string, sql: string, params?: unknown[] }",
+  },
+  {
+    "name": "b3os_resume_workflow",
+    "signature": "Call signature: { workflowId: string }",
+  },
+  {
+    "name": "b3os_run_action",
+    "signature": "Call signature: { actionType: string, inputs?: unknown, walletId?: string, connectorId?: string }",
+  },
+  {
+    "name": "b3os_run_ephemeral",
+    "signature": "Call signature: { definition: object, payload?: object }",
+  },
+  {
+    "name": "b3os_run_workflow",
+    "signature": "Call signature: { workflowId: string, payload?: object }",
+  },
+  {
+    "name": "b3os_search_actions",
+    "signature": "Call signature: { query: string, limit?: number }",
+  },
+  {
+    "name": "b3os_token_lookup",
+    "signature": "Call signature: { network?: string, address?: string, coinId?: string }",
+  },
+  {
+    "name": "b3os_update_workflow",
+    "signature": "Call signature: { workflowId: string, name?: string, description?: string, definition?: object, expectedCurrentVersion?: number }",
+  },
+  {
+    "name": "b3os_validate_workflow",
+    "signature": "Call signature: { name?: string, definition: object }",
+  },
+  {
+    "name": "b3os_whoami",
+    "signature": "Call signature: {}",
+  },
+]
+`;
