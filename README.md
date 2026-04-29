@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/b3os-logo.svg" alt="B3OS" width="200" />
+  <img src="assets/b3os-logo.svg" alt="B3OS" width="240" />
 </p>
 
 <h3 align="center">Open-Source Actions for B3OS</h3>
@@ -11,8 +11,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/b3-fun/b3os/actions"><img src="https://github.com/b3-fun/b3os/workflows/CI/badge.svg" alt="CI" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a>
+</p>
+
+<p align="center">
+  <sub>Powered by</sub>
+  <br />
+  <a href="https://b3.fun"><img src="assets/b3-logo.svg" alt="B3" width="60" /></a>
 </p>
 
 ---
