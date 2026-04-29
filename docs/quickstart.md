@@ -5,6 +5,7 @@ This guide walks you through creating a B3OS action from scratch in about 5 minu
 ## Prerequisites
 
 - Node.js 20+
+- [pnpm](https://pnpm.io/installation)
 - Git
 
 ## Setup
@@ -12,7 +13,7 @@ This guide walks you through creating a B3OS action from scratch in about 5 minu
 ```bash
 git clone https://github.com/b3-fun/b3os.git
 cd b3os
-npm install
+pnpm install
 ```
 
 ## What you'll build
@@ -31,7 +32,7 @@ The schema tells B3OS what your action accepts and returns.
 
 ```typescript
 // actions/reverse-string/schema.ts
-import type { SchemaDefinition } from "../../src/types";
+import type { SchemaDefinition } from "../../packages/sdk/src/types";
 
 export const payloadSchema: SchemaDefinition = {
   type: "object",
@@ -66,9 +67,12 @@ export const resultSchema: SchemaDefinition = {
 
 ```typescript
 // actions/reverse-string/execute.ts
-import { BaseAction } from "../../src/base-action";
-import { ActionCategory } from "../../src/types";
-import type { ActionExecutionParams, ActionResult } from "../../src/types";
+import { BaseAction } from "../../packages/sdk/src/base-action";
+import { ActionCategory } from "../../packages/sdk/src/types";
+import type {
+  ActionExecutionParams,
+  ActionResult,
+} from "../../packages/sdk/src/types";
 import { payloadSchema, resultSchema } from "./schema";
 
 export class ReverseStringAction extends BaseAction {
@@ -161,18 +165,18 @@ describe("ReverseStringAction", () => {
 
 ```bash
 # Run just your test
-npx vitest run actions/reverse-string
+pnpm exec vitest run actions/reverse-string
 
 # Run all tests
-npm test
+pnpm test
 
 # Full validation
-npm run validate
+pnpm validate
 ```
 
 ## What's next?
 
 - Read the [CONTRIBUTING.md](../CONTRIBUTING.md) for the full contribution guide
 - Browse [existing actions](../actions/) for more examples
-- Look at the [action types](../src/types.ts) for the complete API reference
+- Look at the [action types](../packages/sdk/src/types.ts) for the complete API reference
 - Open a PR with your action!

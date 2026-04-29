@@ -30,11 +30,11 @@ Thanks for your interest in contributing to B3OS! This guide walks you through c
    ```
 3. **Install** dependencies:
    ```bash
-   npm install
+   pnpm install
    ```
 4. **Verify** everything works:
    ```bash
-   npm run validate
+   pnpm validate
    ```
 
 ## Creating an Action
@@ -65,7 +65,7 @@ Schemas define what your action accepts and returns using [JSON Schema](https://
 
 ```typescript
 // actions/my-action/schema.ts
-import type { SchemaDefinition } from "../../src/types";
+import type { SchemaDefinition } from "../../packages/sdk/src/types";
 
 export const payloadSchema: SchemaDefinition = {
   type: "object",
@@ -110,9 +110,12 @@ Extend `BaseAction` and implement the `execute` method:
 
 ```typescript
 // actions/my-action/execute.ts
-import { BaseAction } from "../../src/base-action";
-import { ActionCategory } from "../../src/types";
-import type { ActionExecutionParams, ActionResult } from "../../src/types";
+import { BaseAction } from "../../packages/sdk/src/base-action";
+import { ActionCategory } from "../../packages/sdk/src/types";
+import type {
+  ActionExecutionParams,
+  ActionResult,
+} from "../../packages/sdk/src/types";
 import { payloadSchema, resultSchema } from "./schema";
 
 export class MyAction extends BaseAction {
@@ -223,7 +226,7 @@ describe("MyAction", () => {
 Before submitting, run the full validation suite:
 
 ```bash
-npm run validate
+pnpm validate
 ```
 
 This runs type checking, tests, and formatting checks in one command.
@@ -346,7 +349,7 @@ You never handle OAuth flows, token storage, or credential management — the pl
 3. **Run validation**:
 
    ```bash
-   npm run validate
+   pnpm validate
    ```
 
 4. **Push** and open a PR against `main`.

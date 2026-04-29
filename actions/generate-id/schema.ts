@@ -1,4 +1,4 @@
-import type { SchemaDefinition } from "../../src/types";
+import type { SchemaDefinition } from "../../packages/sdk/src/types";
 
 export const payloadSchema: SchemaDefinition = {
   type: "object",

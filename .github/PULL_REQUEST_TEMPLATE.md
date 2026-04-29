@@ -16,9 +16,9 @@
 - [ ] `schema.ts` defines both `payloadSchema` and `resultSchema`
 - [ ] `execute.ts` extends `BaseAction` and implements `execute()`
 - [ ] `index.ts` re-exports the action class
-- [ ] Tests added and passing (`npm test`)
-- [ ] TypeScript compiles without errors (`npm run typecheck`)
-- [ ] Code is formatted (`npm run prettier:write`)
+- [ ] Tests added and passing (`pnpm test`)
+- [ ] TypeScript compiles without errors (`pnpm typecheck`)
+- [ ] Code is formatted (`pnpm prettier:write`)
 
 ## Test Plan
 

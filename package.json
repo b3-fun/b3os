@@ -1,6 +1,7 @@
 {
-  "name": "@b3os/actions",
+  "name": "b3os",
   "version": "0.1.0",
+  "private": true,
   "description": "Open-source action library for B3OS workflow automation",
   "license": "MIT",
   "repository": {
@@ -8,17 +9,7 @@
     "url": "https://github.com/b3-fun/b3os.git"
   },
   "homepage": "https://b3os.org",
-  "keywords": [
-    "b3os",
-    "blockchain",
-    "automation",
-    "workflows",
-    "actions",
-    "web3"
-  ],
   "type": "module",
-  "main": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
   "scripts": {
     "build": "tsc",
     "test": "vitest run",

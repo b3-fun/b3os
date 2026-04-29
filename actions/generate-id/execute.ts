@@ -1,10 +1,10 @@
-import { BaseAction } from "../../src/base-action";
-import { ActionCategory } from "../../src/types";
+import { BaseAction } from "../../packages/sdk/src/base-action";
+import { ActionCategory } from "../../packages/sdk/src/types";
 import type {
   ActionExecutionParams,
   ActionInputs,
   ActionResult,
-} from "../../src/types";
+} from "../../packages/sdk/src/types";
 import { payloadSchema, resultSchema } from "./schema";
 
 const ALPHANUMERIC_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
