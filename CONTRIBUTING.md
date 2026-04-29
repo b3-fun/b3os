@@ -41,18 +41,18 @@ Thanks for your interest in contributing to B3OS! This guide walks you through c
 
 ### Step 1: Scaffold your action
 
-Create a new directory under `actions/` with your action's kebab-case ID:
+Create a new directory under `packages/sdk/actions/` with your action's kebab-case ID:
 
 ```bash
-mkdir -p actions/my-action
-touch actions/my-action/{execute,schema,index}.ts
-touch actions/my-action/my-action.test.ts
+mkdir -p packages/sdk/actions/my-action
+touch packages/sdk/actions/my-action/{execute,schema,index}.ts
+touch packages/sdk/actions/my-action/my-action.test.ts
 ```
 
 Your directory should look like:
 
 ```
-actions/my-action/
+packages/sdk/actions/my-action/
 ├── execute.ts          # Action class
 ├── schema.ts           # Input/output schemas
 ├── index.ts            # Re-export
@@ -64,8 +64,8 @@ actions/my-action/
 Schemas define what your action accepts and returns using [JSON Schema](https://json-schema.org/). The B3OS canvas uses these to render input forms and validate data.
 
 ```typescript
-// actions/my-action/schema.ts
-import type { SchemaDefinition } from "../../packages/sdk/src/types";
+// packages/sdk/actions/my-action/schema.ts
+import type { SchemaDefinition } from "../../src/types";
 
 export const payloadSchema: SchemaDefinition = {
   type: "object",
@@ -109,13 +109,10 @@ export const resultSchema: SchemaDefinition = {
 Extend `BaseAction` and implement the `execute` method:
 
 ```typescript
-// actions/my-action/execute.ts
-import { BaseAction } from "../../packages/sdk/src/base-action";
-import { ActionCategory } from "../../packages/sdk/src/types";
-import type {
-  ActionExecutionParams,
-  ActionResult,
-} from "../../packages/sdk/src/types";
+// packages/sdk/actions/my-action/execute.ts
+import { BaseAction } from "../../src/base-action";
+import { ActionCategory } from "../../src/types";
+import type { ActionExecutionParams, ActionResult } from "../../src/types";
 import { payloadSchema, resultSchema } from "./schema";
 
 export class MyAction extends BaseAction {
@@ -175,7 +172,7 @@ export class MyAction extends BaseAction {
 Then re-export:
 
 ```typescript
-// actions/my-action/index.ts
+// packages/sdk/actions/my-action/index.ts
 export { MyAction } from "./execute";
 ```
 
@@ -184,7 +181,7 @@ export { MyAction } from "./execute";
 Every action must have tests. Use the `makeParams` helper pattern:
 
 ```typescript
-// actions/my-action/my-action.test.ts
+// packages/sdk/actions/my-action/my-action.test.ts
 import { describe, expect, it } from "vitest";
 import { MyAction } from "./execute";
 

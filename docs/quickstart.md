@@ -23,7 +23,7 @@ A `reverse-string` action that takes a string and returns it reversed. Simple, b
 ## Step 1: Create the directory
 
 ```bash
-mkdir -p actions/reverse-string
+mkdir -p packages/sdk/actions/reverse-string
 ```
 
 ## Step 2: Define the schema
@@ -31,8 +31,8 @@ mkdir -p actions/reverse-string
 The schema tells B3OS what your action accepts and returns.
 
 ```typescript
-// actions/reverse-string/schema.ts
-import type { SchemaDefinition } from "../../packages/sdk/src/types";
+// packages/sdk/actions/reverse-string/schema.ts
+import type { SchemaDefinition } from "../../src/types";
 
 export const payloadSchema: SchemaDefinition = {
   type: "object",
@@ -66,13 +66,10 @@ export const resultSchema: SchemaDefinition = {
 ## Step 3: Implement the action
 
 ```typescript
-// actions/reverse-string/execute.ts
-import { BaseAction } from "../../packages/sdk/src/base-action";
-import { ActionCategory } from "../../packages/sdk/src/types";
-import type {
-  ActionExecutionParams,
-  ActionResult,
-} from "../../packages/sdk/src/types";
+// packages/sdk/actions/reverse-string/execute.ts
+import { BaseAction } from "../../src/base-action";
+import { ActionCategory } from "../../src/types";
+import type { ActionExecutionParams, ActionResult } from "../../src/types";
 import { payloadSchema, resultSchema } from "./schema";
 
 export class ReverseStringAction extends BaseAction {
@@ -113,14 +110,14 @@ export class ReverseStringAction extends BaseAction {
 ## Step 4: Add the re-export
 
 ```typescript
-// actions/reverse-string/index.ts
+// packages/sdk/actions/reverse-string/index.ts
 export { ReverseStringAction } from "./execute";
 ```
 
 ## Step 5: Write a test
 
 ```typescript
-// actions/reverse-string/reverse-string.test.ts
+// packages/sdk/actions/reverse-string/reverse-string.test.ts
 import { describe, expect, it } from "vitest";
 import { ReverseStringAction } from "./execute";
 
@@ -165,7 +162,7 @@ describe("ReverseStringAction", () => {
 
 ```bash
 # Run just your test
-pnpm exec vitest run actions/reverse-string
+pnpm exec vitest run packages/sdk/actions/reverse-string
 
 # Run all tests
 pnpm test
@@ -177,6 +174,6 @@ pnpm validate
 ## What's next?
 
 - Read the [CONTRIBUTING.md](../CONTRIBUTING.md) for the full contribution guide
-- Browse [existing actions](../actions/) for more examples
+- Browse [existing actions](../packages/sdk/actions/) for more examples
 - Look at the [action types](../packages/sdk/src/types.ts) for the complete API reference
 - Open a PR with your action!

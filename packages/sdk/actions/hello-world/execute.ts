@@ -1,9 +1,6 @@
-import { BaseAction } from "../../packages/sdk/src/base-action";
-import { ActionCategory } from "../../packages/sdk/src/types";
-import type {
-  ActionExecutionParams,
-  ActionResult,
-} from "../../packages/sdk/src/types";
+import { BaseAction } from "../../src/base-action";
+import { ActionCategory } from "../../src/types";
+import type { ActionExecutionParams, ActionResult } from "../../src/types";
 import { payloadSchema, resultSchema } from "./schema";
 
 /**

@@ -35,17 +35,17 @@ This repository is the open-source home for community-contributed actions. You c
 ```
 b3os/
 ├── packages/
-│   └── sdk/              # Action SDK (@b3os/sdk)
-│       └── src/
-│           ├── base-action.ts    # Base class all actions extend
-│           ├── types.ts          # TypeScript types and interfaces
-│           ├── registry.ts       # Action registry for managing actions
-│           └── index.ts          # Public API exports
-├── actions/              # Community-contributed actions
-│   ├── hello-world/      # Minimal example action
-│   └── generate-id/      # ID generation action
-└── docs/                 # Documentation
-    └── quickstart.md     # Get started in 5 minutes
+│   └── sdk/                      # Action SDK (@b3os/sdk)
+│       ├── src/                  # Base classes, types, registry
+│       │   ├── base-action.ts
+│       │   ├── types.ts
+│       │   ├── registry.ts
+│       │   └── index.ts
+│       └── actions/              # Community-contributed actions
+│           ├── hello-world/      # Minimal example action
+│           └── generate-id/      # ID generation action
+└── docs/                         # Documentation
+    └── quickstart.md
 ```
 
 ## Quick Start
@@ -66,10 +66,10 @@ pnpm test
 
 ### 3. Create your first action
 
-Every action lives in its own directory under `actions/` and consists of three files:
+Every action lives in its own directory under `packages/sdk/actions/` and consists of three files:
 
 ```
-actions/my-action/
+packages/sdk/actions/my-action/
 ├── execute.ts        # Action class (extends BaseAction)
 ├── schema.ts         # Input/output JSON schemas
 └── index.ts          # Re-export
@@ -78,13 +78,10 @@ actions/my-action/
 Here's the simplest possible action:
 
 ```typescript
-// actions/my-action/execute.ts
-import { BaseAction } from "../../packages/sdk/src/base-action";
-import { ActionCategory } from "../../packages/sdk/src/types";
-import type {
-  ActionExecutionParams,
-  ActionResult,
-} from "../../packages/sdk/src/types";
+// packages/sdk/actions/my-action/execute.ts
+import { BaseAction } from "../../src/base-action";
+import { ActionCategory } from "../../src/types";
+import type { ActionExecutionParams, ActionResult } from "../../src/types";
 import { payloadSchema, resultSchema } from "./schema";
 
 export class MyAction extends BaseAction {
@@ -161,7 +158,7 @@ We welcome contributions from the community. See [CONTRIBUTING.md](CONTRIBUTING.
 **TL;DR:**
 
 1. Fork the repo
-2. Create your action in `actions/your-action/`
+2. Create your action in `packages/sdk/actions/your-action/`
 3. Add tests
 4. Open a PR
 

@@ -17,6 +17,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true
   },
-  "include": ["packages/sdk/src/**/*.ts", "actions/**/*.ts"],
+  "include": ["packages/sdk/src/**/*.ts", "packages/sdk/actions/**/*.ts"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }
