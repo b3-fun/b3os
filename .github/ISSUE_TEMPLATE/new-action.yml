@@ -1,0 +1,87 @@
+name: New Action Proposal
+description: Propose a new action for B3OS
+title: "[Action] "
+labels: ["new-action"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing a new B3OS action! Please fill out the details below so we can evaluate and prioritize it.
+
+  - type: input
+    id: action-id
+    attributes:
+      label: Action ID
+      description: "Kebab-case identifier (e.g., `get-token-price`, `send-discord-message`)"
+      placeholder: "my-new-action"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - blockchain-data
+        - evm-onchain
+        - solana-onchain
+        - messaging
+        - social
+        - integration
+        - utility
+        - wallet-management
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What does this action do? What problem does it solve?
+      placeholder: "This action fetches..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: inputs
+    attributes:
+      label: Expected Inputs
+      description: What inputs does this action accept?
+      placeholder: |
+        - `tokenAddress` (string, required): The token contract address
+        - `chainId` (number, required): The chain to query
+    validations:
+      required: true
+
+  - type: textarea
+    id: outputs
+    attributes:
+      label: Expected Outputs
+      description: What does this action return on success?
+      placeholder: |
+        - `price` (number): Current token price in USD
+        - `symbol` (string): Token symbol
+    validations:
+      required: true
+
+  - type: input
+    id: api
+    attributes:
+      label: External API (if any)
+      description: Does this action call an external API? Link to their docs.
+      placeholder: "https://docs.example.com/api"
+
+  - type: dropdown
+    id: connector
+    attributes:
+      label: Requires Connector?
+      description: Does this action need stored credentials (API key, OAuth, etc.)?
+      options:
+        - "No"
+        - "Yes"
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Anything else? Links, screenshots, related actions, etc.

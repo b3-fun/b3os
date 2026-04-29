@@ -1,0 +1,28 @@
+{
+  "name": "b3os",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open-source action library for B3OS workflow automation",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/b3-fun/b3os.git"
+  },
+  "homepage": "https://b3os.org",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prettier:write": "prettier --write .",
+    "prettier:check": "prettier --check .",
+    "validate": "tsc --noEmit && vitest run && prettier --check ."
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@b3os/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Base classes and types for building B3OS actions",
+  "license": "MIT",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts"
+}
