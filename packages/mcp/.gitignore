@@ -1,0 +1,7 @@
+dist/
+# Allow fixture dist directories used by leak-check tests
+!src/__tests__/fixtures/**/
+!src/__tests__/fixtures/**
+node_modules/
+.DS_Store
+*.tgz

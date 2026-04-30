@@ -35,15 +35,10 @@ This repository is the open-source home for community-contributed actions. You c
 ```
 b3os/
 ├── packages/
+│   ├── mcp/                      # MCP server (@b3dotfun/b3os-mcp)
 │   └── sdk/                      # Action SDK (@b3os/sdk)
 │       ├── src/                  # Base classes, types, registry
-│       │   ├── base-action.ts
-│       │   ├── types.ts
-│       │   ├── registry.ts
-│       │   └── index.ts
 │       └── actions/              # Community-contributed actions
-│           ├── hello-world/      # Minimal example action
-│           └── generate-id/      # ID generation action
 └── docs/                         # Documentation
     └── quickstart.md
 ```

@@ -1,0 +1,61 @@
+{
+  "name": "@b3dotfun/b3os-mcp",
+  "version": "0.1.8",
+  "type": "module",
+  "description": "B3OS MCP Server — Connect AI agents to the B3OS workflow automation platform",
+  "keywords": [
+    "b3os",
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "ai",
+    "workflow",
+    "automation",
+    "blockchain"
+  ],
+  "homepage": "https://b3os.org",
+  "bugs": {
+    "url": "https://b3os.org"
+  },
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "b3os-mcp": "./dist/index.js",
+    "b3os-mcp-setup": "./dist/setup.js"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "pnpm run clean && tsc",
+    "check:leaks": "node scripts/check-leaks.mjs",
+    "prepublishOnly": "pnpm run build && pnpm run check:leaks",
+    "start": "node dist/index.js",
+    "setup": "node dist/setup.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:smoke": "bash scripts/smoke.sh",
+    "dev:link": "bash scripts/dev-link.sh",
+    "dev:unlink": "bash scripts/dev-unlink.sh"
+  },
+  "engines": {
+    "node": ">= 20.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.11.0",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^4.1.0"
+  }
+}
