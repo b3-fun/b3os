@@ -82,16 +82,17 @@ address, token symbol, or other parameters).`,
     s,
     "b3os_run_action",
     {
-      description: `Execute a single action immediately and return its result.
+      description: `Execute a single action immediately and return its result. Works for
+BOTH read and write operations — queries, swaps, sends, deposits, leverage changes, etc.
 
 Simpler than b3os_run_ephemeral — no workflow definition needed.
 Provide the action type and its inputs directly.
 
-Use for one-shot lookups: "get ETH price", "fetch wallet balances",
-"look up a token address". For multi-step workflows or if-node branching,
-use b3os_run_ephemeral instead.
+Use for any single-action task: "get ETH price", "deposit USDC to Hyperliquid",
+"set 5x leverage on BTC", "send 10 USDC", "swap ETH for USDC".
+For multi-step workflows or if-node branching, use b3os_run_ephemeral instead.
 
-WALLET ACTIONS: For actions that require a wallet (swaps, sends, DeFi),
+WALLET ACTIONS: For actions that require a wallet (swaps, sends, DeFi, perps),
 pass walletId to specify which wallet to use. If the org has exactly one wallet,
 it is used automatically. If multiple wallets exist, walletId is required.
 Use b3os_list_wallets to see available wallets.
@@ -358,6 +359,33 @@ or "waiting".`,
       auditLog("CANCEL", `run ${runId}`);
       await request(`/v1/runs/${runId}/cancel`, { method: "POST" });
       return { content: [{ type: "text", text: `Run ${runId} cancelled.` }] };
+    },
+  );
+
+  registerToolSafe(
+    s,
+    "b3os_retry_run",
+    {
+      description: `Retry a failed workflow run from the point of failure. Only works on runs with status "failure". Previously successful nodes are skipped — only failed and pending nodes re-execute.
+
+Use b3os_get_run to inspect the failure first, then retry after fixing the root cause (e.g. updating the workflow definition, fixing connector config).`,
+      inputSchema: {
+        runId: z.string().describe("Run ID to retry (e.g. 'run_abc123')"),
+      },
+    },
+    async ({ runId }) => {
+      validateRunId(runId);
+      auditLog("RETRY", `run ${runId}`);
+      const result = await request<{ runId: string }>(`/v1/runs/${runId}/retry`, { method: "POST" });
+      if (!result?.runId) throw new Error(`Failed to retry run ${runId}`);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Run ${runId} retried. New run ID: ${result.runId}\n\nUse b3os_get_run to check the result.`,
+          },
+        ],
+      };
     },
   );
 }

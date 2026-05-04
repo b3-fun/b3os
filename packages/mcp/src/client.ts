@@ -34,16 +34,19 @@ export async function getApiKey(): Promise<string> {
   return pendingKeyPromise;
 }
 
-/** Test-only: reset the module-level cache between test cases. */
-export function __resetKeyCacheForTests(): void {
+/** Clear the in-memory API key cache so the next request re-reads from keystore. */
+export function clearKeyCache(): void {
   cachedKey = null;
   pendingKeyPromise = null;
 }
 
+/** @deprecated Use clearKeyCache(). Kept for existing test compatibility. */
+export const __resetKeyCacheForTests = clearKeyCache;
+
 export function getServerUrl(): string {
   const url = (process.env.B3OS_SERVER_URL || "https://api.b3os.org").replace(/\/+$/, "");
-  if (!/^https:\/\//i.test(url) && process.env.NODE_ENV !== "development") {
-    throw new Error("B3OS_SERVER_URL must use HTTPS");
+  if (!/^https:\/\//i.test(url) && !/^http:\/\/(localhost|127\.0\.0\.1)(:|$)/.test(url)) {
+    throw new Error("B3OS_SERVER_URL must use HTTPS (localhost is exempt)");
   }
   return url;
 }

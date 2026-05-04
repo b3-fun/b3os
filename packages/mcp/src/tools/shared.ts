@@ -29,6 +29,12 @@ export function validateOrgId(orgId: string): void {
   }
 }
 
+export function validateTemplateId(templateId: string): void {
+  if (!/^tmpl_\w+$/.test(templateId)) {
+    throw new Error("Invalid templateId format — expected 'tmpl_' prefix (e.g. 'tmpl_abc123')");
+  }
+}
+
 export function auditLog(action: string, detail?: string): void {
   console.error(`[b3os-mcp] ${action}${detail ? ` ${detail}` : ""} at ${new Date().toISOString()}`);
 }

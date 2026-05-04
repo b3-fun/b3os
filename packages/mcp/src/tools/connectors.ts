@@ -1,7 +1,15 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ApiError, request, truncateResponse } from "../client.js";
-import type { ActionTestResult, Connector, PaginatedData, SlackChannel, TelegramChat, Wallet } from "../types.js";
+import type {
+  ActionTestResult,
+  Connector,
+  ConnectorType,
+  PaginatedData,
+  SlackChannel,
+  TelegramChat,
+  Wallet,
+} from "../types.js";
 import { registerToolSafe } from "./register-tool-safe.js";
 import { validateOrgId } from "./shared.js";
 
@@ -55,14 +63,15 @@ Requires orgId — call b3os_whoami first to get it.`,
     s,
     "b3os_list_connectors",
     {
-      description: `List configured connectors (OAuth integrations) for the organization. Connectors are
-credentials for external services — Slack, Discord, Google Sheets, wallets, etc.
+      description: `List configured OAuth connectors for the organization. Connectors are credentials
+for external services that require OAuth — Slack, Discord, Telegram, Gmail, Google Sheets.
 
-Use this to discover which connectors are available before building workflows. The
-connector ID is needed for workflow nodes that interact with external services:
-  "connector": { "type": "slack", "id": "conn_abc123" }
+IMPORTANT: This does NOT list wallets. On-chain actions (send tokens, swaps, DeFi,
+perps trading) use org wallets from b3os_list_wallets, NOT connectors. Only use this
+tool when the workflow needs an OAuth-based integration.
 
-Without this tool, you'd have to use placeholder connector references.`,
+The connector ID is needed for workflow nodes that interact with OAuth services:
+  "connector": { "type": "slack", "id": "conn_abc123" }`,
       inputSchema: {},
     },
     async () => {
@@ -75,7 +84,7 @@ Without this tool, you'd have to use placeholder connector references.`,
           content: [
             {
               type: "text",
-              text: "No connectors configured yet.\n\nConnectors link workflows to external services (Slack, Telegram, Gmail, wallets, etc.). Set up your first connector at: https://b3os.org/connectors",
+              text: "No OAuth connectors configured yet.\n\nConnectors are needed for external services like Slack, Telegram, Gmail, Discord, and Google Sheets. Set one up at: https://b3os.org/connectors\n\nNote: On-chain actions (send tokens, swaps, DeFi, perps) use org wallets, not connectors. Use b3os_list_wallets to see available wallets.",
             },
           ],
         };
@@ -243,6 +252,40 @@ Requires a slack connector ID — call b3os_list_connectors first.`,
         2,
       );
       return { content: [{ type: "text", text: truncateResponse(text) }] };
+    },
+  );
+
+  registerToolSafe(
+    s,
+    "b3os_list_connector_types",
+    {
+      description: `List all available connector types (Slack, Telegram, Discord, Gmail, wallet, etc.).
+Shows what kinds of external service integrations B3OS supports, even if your org
+hasn't configured them yet. Use this to understand what's possible before asking
+the user to set up connectors at https://b3os.org/connectors.`,
+      inputSchema: {},
+    },
+    async () => {
+      const types = await request<ConnectorType[]>("/v1/connector-types", { noAuth: true });
+      return {
+        content: [
+          {
+            type: "text",
+            text: truncateResponse(
+              JSON.stringify(
+                (types || []).map(t => ({
+                  type: t.type,
+                  name: t.name,
+                  description: t.description,
+                  category: t.category,
+                })),
+                null,
+                2,
+              ),
+            ),
+          },
+        ],
+      };
     },
   );
 }

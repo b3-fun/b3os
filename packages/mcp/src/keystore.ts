@@ -97,6 +97,17 @@ export async function readApiKey(): Promise<string | null> {
   return null; // plaintext-fallback: caller reads process.env.B3OS_API_KEY
 }
 
+/**
+ * Delete the API key from the current platform's keystore. Returns true
+ * if a key was deleted, false if there was nothing to delete.
+ */
+export async function deleteApiKey(): Promise<boolean> {
+  const kind = detectKeystore();
+  if (kind === "macos-keychain") return deleteMacosKeychain();
+  if (kind === "windows-dpapi") return deleteWindowsDpapi();
+  return false; // plaintext-fallback: caller must clear env / config
+}
+
 // ── Internal backend implementations ──
 async function storeMacosKeychain(key: string): Promise<void> {
   try {
@@ -182,6 +193,37 @@ function handleSecurityReadError(err: unknown): null {
   const msg = e.message || stderr || "unknown error";
   throw new KeystoreError("UNKNOWN", `Failed to read macOS Keychain item: ${msg}`);
 }
+async function deleteMacosKeychain(): Promise<boolean> {
+  try {
+    const account = userInfo().username;
+    execFileSync("security", ["delete-generic-password", "-a", account, "-s", KEYSTORE_SERVICE_NAME], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return true;
+  } catch (err) {
+    const e = err as NodeJS.ErrnoException & { status?: number };
+    if (e.status === 44) return false; // item not found
+    if (e.code === "ENOENT") {
+      throw new KeystoreError("TOOL_MISSING", "'security' binary not found on PATH.");
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new KeystoreError("UNKNOWN", `Failed to delete macOS Keychain item: ${msg}`);
+  }
+}
+
+async function deleteWindowsDpapi(): Promise<boolean> {
+  const dpapiPath = getDpapiPath();
+  try {
+    const { unlinkSync } = await import("node:fs");
+    unlinkSync(dpapiPath);
+    return true;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return false;
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new KeystoreError("UNKNOWN", `Failed to delete DPAPI blob: ${msg}`);
+  }
+}
+
 async function storeWindowsDpapi(key: string): Promise<void> {
   let encrypted: string;
   try {

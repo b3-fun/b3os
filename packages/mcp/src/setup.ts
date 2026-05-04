@@ -11,8 +11,20 @@ import { createApiKey, createServiceAccount, findServiceAccountByName } from "./
 import { detectKeystore, readApiKey, storeApiKey, type KeystoreKind } from "./keystore.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const B3OS_SERVER_URL = "https://api.b3os.org";
-const B3OS_WEB_URL = "https://b3os.org";
+
+const ENV_URLS: Record<string, { api: string; web: string }> = {
+  dev: { api: "https://dev-api.b3os.org", web: "https://dev.b3os.org" },
+  local: { api: "http://localhost:8080", web: "http://localhost:3000" },
+  prod: { api: "https://api.b3os.org", web: "https://b3os.org" },
+};
+const envKey = process.env.B3OS_ENV;
+const envUrls = envKey ? ENV_URLS[envKey] : undefined;
+if (envKey && !envUrls) {
+  console.error(`✗ Unknown B3OS_ENV='${envKey}'. Use dev, local, or prod.`);
+  process.exit(1);
+}
+const B3OS_SERVER_URL = process.env.B3OS_SERVER_URL || envUrls?.api || "https://api.b3os.org";
+const B3OS_WEB_URL = process.env.B3OS_WEB_URL || envUrls?.web || "https://b3os.org";
 
 /** Explicit permissions required by b3os-mcp at runtime — matches read-write scope. */
 const MCP_SA_PERMISSIONS = [
@@ -24,6 +36,7 @@ const MCP_SA_PERMISSIONS = [
   "workflow:publish",
   "connector:read",
   "action:read",
+  "action_proxy:execute",
   "run:read",
   "run:stream",
   "run:cancel",

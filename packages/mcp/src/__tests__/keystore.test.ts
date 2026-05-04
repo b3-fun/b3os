@@ -6,6 +6,7 @@ import {
   detectKeystore,
   readApiKey,
   storeApiKey,
+  deleteApiKey,
   KeystoreError,
   __setExecFnForTests,
   __resetExecFnForTests,
@@ -416,6 +417,105 @@ describe("readWindowsDpapi", () => {
       name: "KeystoreError",
       code: "TOOL_MISSING",
     });
+  });
+});
+
+describe("deleteMacosKeychain", () => {
+  const originalPlatform = process.platform;
+  function onMacos(): void {
+    Object.defineProperty(process, "platform", { value: "darwin", configurable: true });
+  }
+  afterEach(() => {
+    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+  });
+
+  it("calls security delete-generic-password and returns true on success", async () => {
+    onMacos();
+    const calls: Array<{ file: string; args: readonly string[] }> = [];
+    __setExecFnForTests(((file: string, args: readonly string[]) => {
+      calls.push({ file, args });
+      return Buffer.from("");
+    }) as ExecFn);
+
+    const result = await deleteApiKey();
+
+    expect(result).toBe(true);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].file).toBe("security");
+    expect(calls[0].args[0]).toBe("delete-generic-password");
+    expect(calls[0].args).toContain("-s");
+    expect(calls[0].args[calls[0].args.indexOf("-s") + 1]).toBe("b3os-mcp");
+  });
+
+  it("returns false when item not found (security exit 44)", async () => {
+    onMacos();
+    __setExecFnForTests((() => {
+      const err = new Error("security returned 44") as Error & { status?: number };
+      err.status = 44;
+      throw err;
+    }) as ExecFn);
+
+    await expect(deleteApiKey()).resolves.toBe(false);
+  });
+
+  it("throws KeystoreError({ code: TOOL_MISSING }) when security binary is missing", async () => {
+    onMacos();
+    __setExecFnForTests((() => {
+      const err = new Error("spawn security ENOENT") as NodeJS.ErrnoException;
+      err.code = "ENOENT";
+      throw err;
+    }) as ExecFn);
+
+    await expect(deleteApiKey()).rejects.toMatchObject({
+      name: "KeystoreError",
+      code: "TOOL_MISSING",
+    });
+  });
+
+  it("throws KeystoreError({ code: UNKNOWN }) for other failures", async () => {
+    onMacos();
+    __setExecFnForTests((() => {
+      const err = new Error("Command failed: security delete-generic-password") as Error & { status?: number };
+      err.status = 1;
+      throw err;
+    }) as ExecFn);
+
+    await expect(deleteApiKey()).rejects.toMatchObject({
+      name: "KeystoreError",
+      code: "UNKNOWN",
+    });
+  });
+});
+
+describe("deleteWindowsDpapi", () => {
+  const originalPlatform = process.platform;
+  function onWindows(): void {
+    Object.defineProperty(process, "platform", { value: "win32", configurable: true });
+  }
+  afterEach(() => {
+    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+  });
+
+  it("returns false when DPAPI file does not exist", async () => {
+    onWindows();
+    __setFsFnsForTests({
+      readFileSync: () => {
+        throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+      },
+    });
+    await expect(deleteApiKey()).resolves.toBe(false);
+  });
+});
+
+describe("deleteApiKey plaintext-fallback", () => {
+  const originalPlatform = process.platform;
+  afterEach(() => {
+    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+  });
+
+  it("returns false on plaintext-fallback (nothing to delete)", async () => {
+    Object.defineProperty(process, "platform", { value: "linux", configurable: true });
+    await expect(deleteApiKey()).resolves.toBe(false);
   });
 });
 

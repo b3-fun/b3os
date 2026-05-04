@@ -186,3 +186,58 @@ export interface SearchResults {
   results: SearchHit[];
   totalHits: number;
 }
+
+// ── Template ──
+
+export interface Template {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  tags: string[];
+  definition: WorkflowDefinition;
+  sourceWorkflowId?: string;
+  isPromoted: boolean;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── Connector Type ──
+
+export interface ConnectorType {
+  type: string;
+  name: string;
+  description: string;
+  logoUrl?: string;
+  category?: string;
+  oauthSupported?: boolean;
+}
+
+// ── Logic Action ──
+
+export interface LogicAction {
+  type: string;
+  name: string;
+  description: string;
+  payloadSchema?: Record<string, unknown>;
+  resultSchema?: Record<string, unknown>;
+}
+
+// ── Workflow Version ──
+
+export interface WorkflowVersion {
+  versionNumber: number;
+  status: string;
+  createdBy?: string;
+  createdAt: string;
+  publishedAt?: string;
+}
+
+// ── CU Balance ──
+
+export interface CuBalance {
+  balance: number;
+  used: number;
+  limit: number;
+}

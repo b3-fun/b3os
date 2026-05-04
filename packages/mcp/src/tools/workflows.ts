@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { request, truncateResponse } from "../client.js";
-import type { PaginatedData, Workflow } from "../types.js";
+import type { PaginatedData, Workflow, WorkflowVersion } from "../types.js";
 import {
   definitionSchema,
   validateWorkflowId,
@@ -274,6 +274,101 @@ including any missing fields, invalid payloads, or misconfigured nodes.`,
           {
             type: "text",
             text: result ? `Validation result:\n${JSON.stringify(result, null, 2)}` : "Workflow definition is valid.",
+          },
+        ],
+      };
+    },
+  );
+
+  registerToolSafe(
+    s,
+    "b3os_list_workflow_versions",
+    {
+      description: `List version history for a workflow. Each publish creates a new version.
+Use this to see the change history and find a version to rollback to.`,
+      inputSchema: {
+        workflowId: z.string().describe("Workflow ID (e.g. 'wf_abc123')"),
+        limit: z.number().optional().describe("Max versions to return (default: 20)"),
+        offset: z.number().optional().describe("Offset for pagination"),
+      },
+    },
+    async ({ workflowId, limit, offset }) => {
+      validateWorkflowId(workflowId);
+      const params: Record<string, string> = {
+        limit: String(Math.min(limit ?? 20, 50)),
+        offset: String(offset ?? 0),
+      };
+      const data = await request<PaginatedData<WorkflowVersion>>(`/v1/workflows/${workflowId}/versions`, { params });
+      const versions = (data?.items || []).map(v => ({
+        versionNumber: v.versionNumber,
+        status: v.status,
+        createdBy: v.createdBy,
+        createdAt: v.createdAt,
+        publishedAt: v.publishedAt,
+      }));
+      return {
+        content: [
+          {
+            type: "text",
+            text: truncateResponse(JSON.stringify({ versions, hasMore: data?.hasMore ?? false }, null, 2)),
+          },
+        ],
+      };
+    },
+  );
+
+  registerToolSafe(
+    s,
+    "b3os_rollback_workflow",
+    {
+      description: `Rollback a workflow to a previous version. Creates a new draft with the definition
+from the specified version. After rollback, review and publish to make it live.
+
+Use b3os_list_workflow_versions to find the target version number.`,
+      inputSchema: {
+        workflowId: z.string().describe("Workflow ID to rollback"),
+        versionNumber: z.number().int().min(1).describe("Target version number to rollback to"),
+      },
+    },
+    async ({ workflowId, versionNumber }) => {
+      validateWorkflowId(workflowId);
+      auditLog("ROLLBACK", `workflow ${workflowId} to version ${versionNumber}`);
+      const result = await request<Workflow>(`/v1/workflows/${workflowId}/rollback`, {
+        method: "POST",
+        body: { versionNumber },
+      });
+      if (!result) throw new Error(`Failed to rollback workflow ${workflowId}`);
+      const url = workflowEditUrl(workflowId);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Workflow rolled back to version ${versionNumber}. Current status: ${result.status}\n\nLink: ${url}\nNext: review the definition and use b3os_publish_workflow to make it live.`,
+          },
+        ],
+      };
+    },
+  );
+
+  registerToolSafe(
+    s,
+    "b3os_get_workflow_schedule",
+    {
+      description: `Get the schedule information for a workflow — when it last ran and when it will
+run next. Only meaningful for workflows with schedule-based triggers (cron).`,
+      inputSchema: {
+        workflowId: z.string().describe("Workflow ID (e.g. 'wf_abc123')"),
+      },
+    },
+    async ({ workflowId }) => {
+      validateWorkflowId(workflowId);
+      const schedule = await request<Record<string, unknown>>(`/v1/workflows/${workflowId}/schedule`);
+      if (!schedule) throw new Error(`No schedule found for workflow ${workflowId}`);
+      return {
+        content: [
+          {
+            type: "text",
+            text: truncateResponse(JSON.stringify(schedule, null, 2)),
           },
         ],
       };
