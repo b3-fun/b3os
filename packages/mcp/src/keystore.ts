@@ -8,7 +8,10 @@
  *     config env block by setup.ts — keystore returns null and the runtime
  *     falls back to process.env.B3OS_API_KEY)
  */
-import { execFileSync as realExecFileSync, type ExecFileSyncOptions } from "node:child_process";
+import {
+  execFileSync as realExecFileSync,
+  type ExecFileSyncOptions,
+} from "node:child_process";
 import {
   mkdirSync as realMkdirSync,
   writeFileSync as realWriteFileSync,
@@ -47,9 +50,16 @@ try {
 }
 `;
 
-export type KeystoreKind = "macos-keychain" | "windows-dpapi" | "plaintext-fallback";
+export type KeystoreKind =
+  | "macos-keychain"
+  | "windows-dpapi"
+  | "plaintext-fallback";
 
-export type KeystoreErrorCode = "ACCESS_DENIED" | "DECRYPT_FAILED" | "TOOL_MISSING" | "UNKNOWN";
+export type KeystoreErrorCode =
+  | "ACCESS_DENIED"
+  | "DECRYPT_FAILED"
+  | "TOOL_MISSING"
+  | "UNKNOWN";
 
 export class KeystoreError extends Error {
   constructor(
@@ -97,6 +107,17 @@ export async function readApiKey(): Promise<string | null> {
   return null; // plaintext-fallback: caller reads process.env.B3OS_API_KEY
 }
 
+/**
+ * Delete the API key from the current platform's keystore. Returns true
+ * if a key was deleted, false if there was nothing to delete.
+ */
+export async function deleteApiKey(): Promise<boolean> {
+  const kind = detectKeystore();
+  if (kind === "macos-keychain") return deleteMacosKeychain();
+  if (kind === "windows-dpapi") return deleteWindowsDpapi();
+  return false; // plaintext-fallback: caller must clear env / config
+}
+
 // ── Internal backend implementations ──
 async function storeMacosKeychain(key: string): Promise<void> {
   try {
@@ -127,15 +148,29 @@ async function storeMacosKeychain(key: string): Promise<void> {
       );
     }
     const msg = err instanceof Error ? err.message : String(err);
-    throw new KeystoreError("UNKNOWN", `Failed to write macOS Keychain item: ${msg}`);
+    throw new KeystoreError(
+      "UNKNOWN",
+      `Failed to write macOS Keychain item: ${msg}`,
+    );
   }
 }
 async function readMacosKeychain(): Promise<string | null> {
   try {
     const account = userInfo().username;
-    const out = execFileSync("security", ["find-generic-password", "-a", account, "-s", KEYSTORE_SERVICE_NAME, "-w"], {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    const out = execFileSync(
+      "security",
+      [
+        "find-generic-password",
+        "-a",
+        account,
+        "-s",
+        KEYSTORE_SERVICE_NAME,
+        "-w",
+      ],
+      {
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
     const text = typeof out === "string" ? out : out.toString("utf-8");
     return text.trimEnd();
   } catch (err) {
@@ -152,7 +187,10 @@ async function readMacosKeychain(): Promise<string | null> {
  * Access.app. Anything else = UNKNOWN with the raw message preserved.
  */
 function handleSecurityReadError(err: unknown): null {
-  const e = err as NodeJS.ErrnoException & { status?: number; stderr?: Buffer | string };
+  const e = err as NodeJS.ErrnoException & {
+    status?: number;
+    stderr?: Buffer | string;
+  };
   if (e.code === "ENOENT") {
     throw new KeystoreError(
       "TOOL_MISSING",
@@ -162,8 +200,14 @@ function handleSecurityReadError(err: unknown): null {
   // security exits 44 when the item is not found — treat as null, not error.
   if (e.status === 44) return null;
 
-  const stderr = typeof e.stderr === "string" ? e.stderr : (e.stderr?.toString("utf-8") ?? "");
-  if (stderr.includes("User interaction is not allowed") || stderr.includes("could not be decrypted")) {
+  const stderr =
+    typeof e.stderr === "string"
+      ? e.stderr
+      : (e.stderr?.toString("utf-8") ?? "");
+  if (
+    stderr.includes("User interaction is not allowed") ||
+    stderr.includes("could not be decrypted")
+  ) {
     throw new KeystoreError(
       "ACCESS_DENIED",
       [
@@ -180,17 +224,67 @@ function handleSecurityReadError(err: unknown): null {
     );
   }
   const msg = e.message || stderr || "unknown error";
-  throw new KeystoreError("UNKNOWN", `Failed to read macOS Keychain item: ${msg}`);
+  throw new KeystoreError(
+    "UNKNOWN",
+    `Failed to read macOS Keychain item: ${msg}`,
+  );
 }
+async function deleteMacosKeychain(): Promise<boolean> {
+  try {
+    const account = userInfo().username;
+    execFileSync(
+      "security",
+      ["delete-generic-password", "-a", account, "-s", KEYSTORE_SERVICE_NAME],
+      {
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    return true;
+  } catch (err) {
+    const e = err as NodeJS.ErrnoException & { status?: number };
+    if (e.status === 44) return false; // item not found
+    if (e.code === "ENOENT") {
+      throw new KeystoreError(
+        "TOOL_MISSING",
+        "'security' binary not found on PATH.",
+      );
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new KeystoreError(
+      "UNKNOWN",
+      `Failed to delete macOS Keychain item: ${msg}`,
+    );
+  }
+}
+
+async function deleteWindowsDpapi(): Promise<boolean> {
+  const dpapiPath = getDpapiPath();
+  try {
+    const { unlinkSync } = await import("node:fs");
+    unlinkSync(dpapiPath);
+    return true;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return false;
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new KeystoreError("UNKNOWN", `Failed to delete DPAPI blob: ${msg}`);
+  }
+}
+
 async function storeWindowsDpapi(key: string): Promise<void> {
   let encrypted: string;
   try {
-    const out = execFileSync("powershell.exe", ["-NoProfile", "-Command", PS_ENCRYPT_SCRIPT], {
-      input: key,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    encrypted = (typeof out === "string" ? out : out.toString("utf-8")).trimEnd();
+    const out = execFileSync(
+      "powershell.exe",
+      ["-NoProfile", "-Command", PS_ENCRYPT_SCRIPT],
+      {
+        input: key,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+      },
+    );
+    encrypted = (
+      typeof out === "string" ? out : out.toString("utf-8")
+    ).trimEnd();
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") {
       throw new KeystoreError(
@@ -199,7 +293,10 @@ async function storeWindowsDpapi(key: string): Promise<void> {
       );
     }
     const msg = err instanceof Error ? err.message : String(err);
-    throw new KeystoreError("UNKNOWN", `Failed to encrypt key via PowerShell DPAPI: ${msg}`);
+    throw new KeystoreError(
+      "UNKNOWN",
+      `Failed to encrypt key via PowerShell DPAPI: ${msg}`,
+    );
   }
 
   try {
@@ -212,7 +309,10 @@ async function storeWindowsDpapi(key: string): Promise<void> {
     fsWriteFileSync(dpapiPath, encrypted, { mode: 0o600 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new KeystoreError("UNKNOWN", `Failed to write DPAPI blob to disk: ${msg}`);
+    throw new KeystoreError(
+      "UNKNOWN",
+      `Failed to write DPAPI blob to disk: ${msg}`,
+    );
   }
 }
 async function readWindowsDpapi(): Promise<string | null> {
@@ -229,11 +329,15 @@ async function readWindowsDpapi(): Promise<string | null> {
   }
 
   try {
-    const out = execFileSync("powershell.exe", ["-NoProfile", "-Command", PS_DECRYPT_SCRIPT], {
-      input: encrypted,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    const out = execFileSync(
+      "powershell.exe",
+      ["-NoProfile", "-Command", PS_DECRYPT_SCRIPT],
+      {
+        input: encrypted,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+      },
+    );
     return (typeof out === "string" ? out : out.toString("utf-8")).trimEnd();
   } catch (err) {
     return handlePowerShellReadError(err);
@@ -253,8 +357,14 @@ function handlePowerShellReadError(err: unknown): never {
       "'powershell.exe' not found on PATH. This is required for reading the API key from Windows DPAPI storage.",
     );
   }
-  const stderr = typeof e.stderr === "string" ? e.stderr : (e.stderr?.toString("utf-8") ?? "");
-  if (stderr.includes("Key not valid for use in specified state") || stderr.includes("CryptographicException")) {
+  const stderr =
+    typeof e.stderr === "string"
+      ? e.stderr
+      : (e.stderr?.toString("utf-8") ?? "");
+  if (
+    stderr.includes("Key not valid for use in specified state") ||
+    stderr.includes("CryptographicException")
+  ) {
     throw new KeystoreError(
       "DECRYPT_FAILED",
       [
@@ -266,14 +376,21 @@ function handlePowerShellReadError(err: unknown): never {
     );
   }
   const msg = e.message || stderr || "unknown error";
-  throw new KeystoreError("UNKNOWN", `Failed to decrypt Windows DPAPI key: ${msg}`);
+  throw new KeystoreError(
+    "UNKNOWN",
+    `Failed to decrypt Windows DPAPI key: ${msg}`,
+  );
 }
 
 // ── Test-only dependency injection ──
 // Tests inject a fake execFileSync so they can run on any platform without
 // touching real OS credential storage. Never call these in production code.
 
-export type ExecFn = (file: string, args: readonly string[], options?: ExecFileSyncOptions) => Buffer | string;
+export type ExecFn = (
+  file: string,
+  args: readonly string[],
+  options?: ExecFileSyncOptions,
+) => Buffer | string;
 
 let execFileSync: ExecFn = realExecFileSync as unknown as ExecFn;
 
@@ -289,14 +406,24 @@ export function __resetExecFnForTests(): void {
 // stub out filesystem side-effects (mkdirSync / writeFileSync / readFileSync)
 // without needing vi.spyOn on ESM namespace exports.
 export type FsFns = {
-  mkdirSync: (path: string, options?: MakeDirectoryOptions) => string | undefined;
-  writeFileSync: (path: string, data: string, options?: WriteFileOptions) => void;
+  mkdirSync: (
+    path: string,
+    options?: MakeDirectoryOptions,
+  ) => string | undefined;
+  writeFileSync: (
+    path: string,
+    data: string,
+    options?: WriteFileOptions,
+  ) => void;
   readFileSync: (path: string, encoding: BufferEncoding) => string;
 };
 
-let fsMkdirSync: FsFns["mkdirSync"] = realMkdirSync as unknown as FsFns["mkdirSync"];
-let fsWriteFileSync: FsFns["writeFileSync"] = realWriteFileSync as unknown as FsFns["writeFileSync"];
-let fsReadFileSync: FsFns["readFileSync"] = realReadFileSync as unknown as FsFns["readFileSync"];
+let fsMkdirSync: FsFns["mkdirSync"] =
+  realMkdirSync as unknown as FsFns["mkdirSync"];
+let fsWriteFileSync: FsFns["writeFileSync"] =
+  realWriteFileSync as unknown as FsFns["writeFileSync"];
+let fsReadFileSync: FsFns["readFileSync"] =
+  realReadFileSync as unknown as FsFns["readFileSync"];
 
 export function __setFsFnsForTests(fns: Partial<FsFns>): void {
   if (fns.mkdirSync) fsMkdirSync = fns.mkdirSync;

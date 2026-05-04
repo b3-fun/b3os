@@ -12,7 +12,9 @@ afterEach(() => {
 
 const TEST_PERMISSIONS = ["workflow:read", "workflow:create"] as const;
 
-const apiKeyOptions = (overrides: Partial<Parameters<typeof createApiKey>[0]> = {}) => ({
+const apiKeyOptions = (
+  overrides: Partial<Parameters<typeof createApiKey>[0]> = {},
+) => ({
   serverUrl: "https://api.b3os.org",
   jwt: "jwt-token",
   orgId: "org_xyz",
@@ -99,19 +101,36 @@ describe("createApiKey", () => {
   });
 
   it("throws a clear error on non-200 responses", async () => {
-    mockFetch.mockResolvedValueOnce(new Response("Forbidden: insufficient permissions", { status: 403 }));
+    mockFetch.mockResolvedValueOnce(
+      new Response("Forbidden: insufficient permissions", { status: 403 }),
+    );
 
     await expect(
-      createApiKey(apiKeyOptions({ name: "x", description: "y", serviceAccountId: "sa_1" })),
+      createApiKey(
+        apiKeyOptions({
+          name: "x",
+          description: "y",
+          serviceAccountId: "sa_1",
+        }),
+      ),
     ).rejects.toThrow("B3OS API error 403");
   });
 
   it("scrubs the JWT from error messages if the server echoes it back", async () => {
-    mockFetch.mockResolvedValueOnce(new Response("Unauthorized: token jwt-secret-xyz invalid", { status: 401 }));
+    mockFetch.mockResolvedValueOnce(
+      new Response("Unauthorized: token jwt-secret-xyz invalid", {
+        status: 401,
+      }),
+    );
 
     try {
       await createApiKey(
-        apiKeyOptions({ jwt: "jwt-secret-xyz", name: "x", description: "y", serviceAccountId: "sa_1" }),
+        apiKeyOptions({
+          jwt: "jwt-secret-xyz",
+          name: "x",
+          description: "y",
+          serviceAccountId: "sa_1",
+        }),
       );
       expect.fail("Should have thrown");
     } catch (err) {
@@ -122,11 +141,19 @@ describe("createApiKey", () => {
 
   it("replaces HTML error pages with a clean message", async () => {
     mockFetch.mockResolvedValueOnce(
-      new Response("<!DOCTYPE html><html><body>502 Bad Gateway</body></html>", { status: 502 }),
+      new Response("<!DOCTYPE html><html><body>502 Bad Gateway</body></html>", {
+        status: 502,
+      }),
     );
 
     await expect(
-      createApiKey(apiKeyOptions({ name: "x", description: "y", serviceAccountId: "sa_1" })),
+      createApiKey(
+        apiKeyOptions({
+          name: "x",
+          description: "y",
+          serviceAccountId: "sa_1",
+        }),
+      ),
     ).rejects.toThrow("HTML error page");
   });
 });

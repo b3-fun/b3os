@@ -39,12 +39,20 @@ exports[`tool schema snapshot > captures the public surface of every registered 
     "signature": "Call signature: { type: string }",
   },
   {
+    "name": "b3os_get_cu_balance",
+    "signature": "Call signature: { orgId: string }",
+  },
+  {
     "name": "b3os_get_run",
     "signature": "Call signature: { runId: string, summary?: boolean, nodeIds?: string[] }",
   },
   {
     "name": "b3os_get_table_schema",
     "signature": "Call signature: { orgId: string, tableName: string }",
+  },
+  {
+    "name": "b3os_get_template",
+    "signature": "Call signature: { templateId: string }",
   },
   {
     "name": "b3os_get_trigger",
@@ -55,11 +63,23 @@ exports[`tool schema snapshot > captures the public surface of every registered 
     "signature": "Call signature: { workflowId: string }",
   },
   {
+    "name": "b3os_get_workflow_schedule",
+    "signature": "Call signature: { workflowId: string }",
+  },
+  {
     "name": "b3os_list_actions",
     "signature": "Call signature: { tags?: string, limit?: number }",
   },
   {
+    "name": "b3os_list_connector_types",
+    "signature": "Call signature: {}",
+  },
+  {
     "name": "b3os_list_connectors",
+    "signature": "Call signature: {}",
+  },
+  {
+    "name": "b3os_list_logic_actions",
     "signature": "Call signature: {}",
   },
   {
@@ -79,6 +99,10 @@ exports[`tool schema snapshot > captures the public surface of every registered 
     "signature": "Call signature: { connectorId?: string, query?: string }",
   },
   {
+    "name": "b3os_list_templates",
+    "signature": "Call signature: { category?: string, limit?: number, offset?: number }",
+  },
+  {
     "name": "b3os_list_triggers",
     "signature": "Call signature: { tags?: string }",
   },
@@ -87,8 +111,16 @@ exports[`tool schema snapshot > captures the public surface of every registered 
     "signature": "Call signature: { orgId: string }",
   },
   {
+    "name": "b3os_list_workflow_versions",
+    "signature": "Call signature: { workflowId: string, limit?: number, offset?: number }",
+  },
+  {
     "name": "b3os_list_workflows",
     "signature": "Call signature: { status?: "draft"|"active"|"paused"|"archived", limit?: number, offset?: number }",
+  },
+  {
+    "name": "b3os_logout",
+    "signature": "Call signature: { confirm: true }",
   },
   {
     "name": "b3os_pause_workflow",
@@ -119,6 +151,14 @@ exports[`tool schema snapshot > captures the public surface of every registered 
     "signature": "Call signature: { workflowId: string }",
   },
   {
+    "name": "b3os_retry_run",
+    "signature": "Call signature: { runId: string }",
+  },
+  {
+    "name": "b3os_rollback_workflow",
+    "signature": "Call signature: { workflowId: string, versionNumber: number }",
+  },
+  {
     "name": "b3os_run_action",
     "signature": "Call signature: { actionType: string, inputs?: unknown, walletId?: string, connectorId?: string }",
   },
@@ -133,6 +173,10 @@ exports[`tool schema snapshot > captures the public surface of every registered 
   {
     "name": "b3os_search_actions",
     "signature": "Call signature: { query: string, limit?: number }",
+  },
+  {
+    "name": "b3os_test_trigger",
+    "signature": "Call signature: { type: string, payload?: unknown, connectorId?: string, connectorType?: string }",
   },
   {
     "name": "b3os_token_lookup",

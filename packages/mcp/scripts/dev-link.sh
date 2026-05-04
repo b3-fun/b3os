@@ -41,6 +41,15 @@ EOF
   exit 1
 fi
 
+# Resolve B3OS_ENV shorthand → B3OS_SERVER_URL if not already set.
+if [ -z "${B3OS_SERVER_URL:-}" ] && [ -n "${B3OS_ENV:-}" ]; then
+  case "$B3OS_ENV" in
+    dev)   B3OS_SERVER_URL="https://dev-api.b3os.org" ;;
+    local) B3OS_SERVER_URL="http://localhost:8080" ;;
+    prod)  B3OS_SERVER_URL="https://api.b3os.org" ;;
+    *)     echo "✗ Unknown B3OS_ENV='$B3OS_ENV'. Use dev, local, or prod." >&2; exit 1 ;;
+  esac
+fi
 : "${B3OS_SERVER_URL:=https://api.b3os.org}"
 
 # Remove any stale local-scope entry so we always overwrite cleanly.

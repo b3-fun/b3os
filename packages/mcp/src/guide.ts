@@ -159,20 +159,24 @@ Use \`b3os_list_triggers\` to see all available trigger types and their payload 
 ### Dynamic Actions (560+ from catalog)
 
 Use \`b3os_search_actions\` to find actions by keyword, then \`b3os_get_action\` to get
-the full payload and result schemas. Common examples:
+the full payload and result schemas. Common categories:
 
 - **Token ops:** \`send-erc20-token\`, \`send-native-token\`, \`approve-erc20\`
 - **Swaps:** \`0x-swap\`, \`cow-swap-gasless\`, \`relay-swap\`, \`swapkit-swap\`
+- **Perps/Trading:** \`hyperliquid-market-order\`, \`hyperliquid-limit-order\`, \`hyperliquid-update-leverage\`, \`hyperliquid-close-position\`, \`hyperliquid-stop-loss\`, \`hyperliquid-take-profit\`
 - **DeFi:** \`morpho-vault-deposit\`, \`morpho-vault-withdraw\`, \`v3-add-liquidity\`
 - **Data:** \`coingecko-get-token-price\`, \`coinglass-get-funding-rate\`
 - **Messaging:** \`slack-send-message\`, \`slack-send-block-kit-message\`, \`discord-send-message\`, \`telegram-send-message\`
 - **Polymarket:** \`polymarket-place-bet\`, \`polymarket-redeem\`
 
+IMPORTANT: This list is NOT exhaustive. The catalog grows constantly. ALWAYS use
+\`b3os_search_actions\` to discover actions — never assume something is unsupported.
+
 ---
 
 ## Connector Rules
 
-Actions that interact with external services require a \`connector\` field:
+Some actions require a \`connector\` field linking them to an external credential:
 
 \`\`\`json
 "connector": { "type": "slack" }
@@ -184,11 +188,18 @@ Or with a specific connector ID:
 "connector": { "type": "slack", "id": "conn_abc123" }
 \`\`\`
 
-**Connector types:** \`slack\`, \`discord\`, \`telegram\`, \`gmail\`, \`google_sheets\`, \`wallet\` (HSM wallet), \`db\` (database).
+**Three kinds of connectors:**
+- **OAuth connectors** (\`slack\`, \`discord\`, \`telegram\`, \`gmail\`, \`google_sheets\`): Must be
+  set up at b3os.org/connectors before use. Required for actions that talk to third-party
+  APIs via OAuth.
+- **Wallet connector** (\`wallet\`): References the org's HSM-backed wallets (from
+  \`b3os_list_wallets\`). Used for all on-chain actions — sending tokens, swaps, DeFi,
+  perps trading. These are always available if the org has wallets; no separate setup needed.
+- **Database connector** (\`db\`): For database actions.
 
 **Logic nodes NEVER need connectors:** \`if\`, \`for-each\`, \`filter\`, \`pluck\`, \`delay\`, \`log\`, \`code-transform\`, \`regex\`, \`wait\`, \`send-webhook\`.
 
-Connectors must be pre-configured in the B3OS UI before workflows can use them.
+OAuth connectors must be pre-configured in the B3OS UI before workflows can use them.
 If the connector ID is unknown at build time, use \`{{ask.connector_id}}\` or leave
 only the \`type\` field — the user will select the connector in the B3OS UI.
 
@@ -310,8 +321,9 @@ Use named lookup tools for common queries:
 - Polymarket: \`b3os_polymarket_lookup\` (query, slug, or marketUrl)
 - Any other action: \`b3os_query_action\` (generic fallback — use \`b3os_search_actions\` to find action types first)
 
-### One-Shot Execution (no save)
-- \`b3os_run_action\` for single-action execution
+### One-Shot Execution (no workflow needed)
+- \`b3os_run_action\` for any single action — reads AND writes (queries, swaps, deposits,
+  leverage changes, token sends). Faster than building a workflow for one-off operations.
 - \`b3os_run_ephemeral\` for multi-step definitions (max 20 nodes, 60s timeout)
 
 ---

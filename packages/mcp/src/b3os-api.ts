@@ -51,21 +51,37 @@ async function jwtRequest<TResponse>(
     // A misconfigured proxy or WAF may echo the Authorization header back in the
     // response body; sanitize before including in the thrown Error.message.
     const scrubbedBody = errorBody.replaceAll(options.jwt, "[REDACTED]");
-    throw new Error(`B3OS API error ${response.status} on ${path}: ${sanitizeBody(scrubbedBody)}`);
+    throw new Error(
+      `B3OS API error ${response.status} on ${path}: ${sanitizeBody(scrubbedBody)}`,
+    );
   }
 
   const envelope = (await response.json()) as ApiResponse<TResponse>;
-  if (envelope == null || typeof envelope !== "object" || !("data" in envelope) || envelope.data == null) {
-    throw new Error(`B3OS API error ${response.status}: unexpected response shape on ${path}`);
+  if (
+    envelope == null ||
+    typeof envelope !== "object" ||
+    !("data" in envelope) ||
+    envelope.data == null
+  ) {
+    throw new Error(
+      `B3OS API error ${response.status}: unexpected response shape on ${path}`,
+    );
   }
   return envelope.data;
 }
 
-async function jwtPost<TResponse>(path: string, body: unknown, options: JwtRequestOptions): Promise<TResponse> {
+async function jwtPost<TResponse>(
+  path: string,
+  body: unknown,
+  options: JwtRequestOptions,
+): Promise<TResponse> {
   return jwtRequest<TResponse>("POST", path, body, options);
 }
 
-async function jwtGet<TResponse>(path: string, options: JwtRequestOptions): Promise<TResponse> {
+async function jwtGet<TResponse>(
+  path: string,
+  options: JwtRequestOptions,
+): Promise<TResponse> {
   return jwtRequest<TResponse>("GET", path, undefined, options);
 }
 
@@ -82,10 +98,16 @@ export interface CreateServiceAccountOptions extends JwtRequestOptions {
   permissions: readonly string[];
 }
 
-export async function createServiceAccount(options: CreateServiceAccountOptions): Promise<ServiceAccount> {
+export async function createServiceAccount(
+  options: CreateServiceAccountOptions,
+): Promise<ServiceAccount> {
   return jwtPost<ServiceAccount>(
     "/v1/service-accounts",
-    { name: options.name, description: options.description, permissions: options.permissions },
+    {
+      name: options.name,
+      description: options.description,
+      permissions: options.permissions,
+    },
     options,
   );
 }
@@ -118,7 +140,7 @@ export async function findServiceAccountByName(
       `/v1/service-accounts?limit=${SA_LIST_PAGE_SIZE}&offset=${offset}`,
       options,
     );
-    const match = data.items.find(sa => sa.name === options.name);
+    const match = data.items.find((sa) => sa.name === options.name);
     if (match) return match;
     if (!data.hasMore) return null;
     offset += data.items.length;
@@ -138,7 +160,9 @@ export interface CreateApiKeyResult {
   name: string;
 }
 
-export async function createApiKey(options: CreateApiKeyOptions): Promise<CreateApiKeyResult> {
+export async function createApiKey(
+  options: CreateApiKeyOptions,
+): Promise<CreateApiKeyResult> {
   return jwtPost<CreateApiKeyResult>(
     "/v1/api-keys",
     {

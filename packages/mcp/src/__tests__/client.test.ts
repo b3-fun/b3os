@@ -56,6 +56,25 @@ describe("getApiKey (async with keystore fallback)", () => {
     await expect(mod.getApiKey()).rejects.toThrow(/B3OS_API_KEY not found/);
   });
 
+  it("clearKeyCache forces the next getApiKey to re-read from keystore", async () => {
+    let callCount = 0;
+    vi.doMock("../keystore.js", () => ({
+      readApiKey: async () => {
+        callCount++;
+        return `b3sk_round${callCount}_1234567890`;
+      },
+    }));
+    const mod = await import("../client.js");
+    const first = await mod.getApiKey();
+    expect(first).toBe("b3sk_round1_1234567890");
+    expect(callCount).toBe(1);
+
+    mod.clearKeyCache();
+    const second = await mod.getApiKey();
+    expect(second).toBe("b3sk_round2_1234567890");
+    expect(callCount).toBe(2);
+  });
+
   it("coalesces concurrent calls into one keystore read", async () => {
     let callCount = 0;
     vi.doMock("../keystore.js", () => ({
@@ -65,7 +84,11 @@ describe("getApiKey (async with keystore fallback)", () => {
       },
     }));
     const mod = await import("../client.js");
-    const [r1, r2, r3] = await Promise.all([mod.getApiKey(), mod.getApiKey(), mod.getApiKey()]);
+    const [r1, r2, r3] = await Promise.all([
+      mod.getApiKey(),
+      mod.getApiKey(),
+      mod.getApiKey(),
+    ]);
     expect(callCount).toBe(1);
     expect(r1).toBe("b3sk_concurrent1234567");
     expect(r2).toBe("b3sk_concurrent1234567");

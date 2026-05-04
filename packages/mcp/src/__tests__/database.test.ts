@@ -42,11 +42,17 @@ describe("isReadOnlySQL", () => {
     });
 
     it("CTE-DML attempt", () => {
-      expect(isReadOnlySQL("WITH x AS (DELETE FROM users RETURNING *) SELECT * FROM x")).toBe(false);
+      expect(
+        isReadOnlySQL(
+          "WITH x AS (DELETE FROM users RETURNING *) SELECT * FROM x",
+        ),
+      ).toBe(false);
     });
 
     it("INSERT", () => {
-      expect(isReadOnlySQL("INSERT INTO users (name) VALUES ('a')")).toBe(false);
+      expect(isReadOnlySQL("INSERT INTO users (name) VALUES ('a')")).toBe(
+        false,
+      );
     });
 
     it("UPDATE", () => {
@@ -66,7 +72,9 @@ describe("isReadOnlySQL", () => {
     });
 
     it("ALTER TABLE", () => {
-      expect(isReadOnlySQL("ALTER TABLE users ADD COLUMN email TEXT")).toBe(false);
+      expect(isReadOnlySQL("ALTER TABLE users ADD COLUMN email TEXT")).toBe(
+        false,
+      );
     });
 
     it("PRAGMA", () => {

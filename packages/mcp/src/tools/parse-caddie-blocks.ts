@@ -38,7 +38,9 @@ const CHAIN_IDS_HINT =
  * Types not in this map get no tool suggestion (ask user directly).
  * Update here when adding new widget types that have associated MCP tools.
  */
-const TOOL_INSTRUCTIONS: Partial<Record<AskWidgetType, string | ((q: AskQuestion) => string)>> = {
+const TOOL_INSTRUCTIONS: Partial<
+  Record<AskWidgetType, string | ((q: AskQuestion) => string)>
+> = {
   "slack-channel":
     'Use `b3os_list_connectors` to find your Slack connector ID (type: "slack"), then `b3os_list_slack_channels` with that connectorId to see available channels.',
   "telegram-chat":
@@ -52,12 +54,14 @@ const TOOL_INSTRUCTIONS: Partial<Record<AskWidgetType, string | ((q: AskQuestion
     }
     return "Use `b3os_list_connectors` to see available connectors.";
   },
-  "quickbooks-account": 'Use `b3os_list_connectors` to find your QuickBooks connector (type: "quickbooks").',
+  "quickbooks-account":
+    'Use `b3os_list_connectors` to find your QuickBooks connector (type: "quickbooks").',
   "token-address":
     "Use `b3os_token_lookup` to resolve a token by name/symbol, or provide the contract address directly.",
   "token-addresses":
     "Use `b3os_token_lookup` to resolve tokens by name/symbol, or provide contract addresses directly.",
-  "asset-selector": "Use `b3os_token_lookup` to find the token, or provide the CoinGecko coin ID directly.",
+  "asset-selector":
+    "Use `b3os_token_lookup` to find the token, or provide the CoinGecko coin ID directly.",
   "chain-id": CHAIN_IDS_HINT,
   "chain-ids": CHAIN_IDS_HINT,
   network: CHAIN_IDS_HINT,
@@ -68,7 +72,9 @@ const TOOL_INSTRUCTIONS: Partial<Record<AskWidgetType, string | ((q: AskQuestion
     const tableName = q.properties?.tableName as string | undefined;
     const columns = q.properties?.columns;
     const schemaInfo = tableName ? ` Proposed table name: "${tableName}".` : "";
-    const columnInfo = Array.isArray(columns) ? ` Proposed columns: ${JSON.stringify(columns)}.` : "";
+    const columnInfo = Array.isArray(columns)
+      ? ` Proposed columns: ${JSON.stringify(columns)}.`
+      : "";
     return (
       `The table must be created BEFORE the workflow runs — workflow nodes cannot CREATE/ALTER tables.${schemaInfo}${columnInfo} ` +
       `REVIEW THE SCHEMA: tables should be named by FUNCTION (e.g. "price_alerts", "budgets", "positions"), NOT by workflow (e.g. "eth_price_alert_state"). ` +
@@ -140,7 +146,11 @@ function rebalanceBraces<T>(json: string): T | null {
 // Matches only the first [[ASK]] block — multiple blocks per message are not expected.
 const ASK_BLOCK_REGEX = /\[\[ASK\]\]\s*([\s\S]*?)\s*\[\[\/ASK\]\]/;
 
-function parseAskBlock(message: string): { before: string; askBlock: AskBlock | null; after: string } {
+function parseAskBlock(message: string): {
+  before: string;
+  askBlock: AskBlock | null;
+  after: string;
+} {
   const match = message.match(ASK_BLOCK_REGEX);
 
   if (!match) {
@@ -191,13 +201,14 @@ function formatQuestionBlock(question: AskQuestion, index: number): string {
     lines.push(`   ${question.description}`);
   }
 
-  const formattedDefault = question.default != null ? formatDefault(question.default) : "";
+  const formattedDefault =
+    question.default != null ? formatDefault(question.default) : "";
   if (formattedDefault) {
     lines.push(`   Default: ${formattedDefault}`);
   }
 
   if (question.options?.length) {
-    const optLabels = question.options.map(o => o.label || o.value);
+    const optLabels = question.options.map((o) => o.label || o.value);
     lines.push(`   Options: ${optLabels.join(", ")}`);
   }
 
@@ -245,7 +256,8 @@ function getAnswerPlaceholder(type: string): string {
 // Markers wrapping the machine-readable AskUserQuestion payload. Both the
 // server instructions and any downstream parser look for these exact strings,
 // so don't change them without updating server.ts INSTRUCTIONS.
-const ASK_UI_PAYLOAD_MARKER_OPEN = "=== AskUserQuestion payload (pass to AskUserQuestion verbatim) ===";
+const ASK_UI_PAYLOAD_MARKER_OPEN =
+  "=== AskUserQuestion payload (pass to AskUserQuestion verbatim) ===";
 const ASK_UI_PAYLOAD_MARKER_CLOSE = "=== end AskUserQuestion payload ===";
 
 // Mirrors Claude Code's AskUserQuestion tool schema:
@@ -277,11 +289,13 @@ function deriveHeader(question: AskQuestion): string {
       .replace(/[_-]+/g, " ")
       .trim()
       .split(/\s+/)
-      .map(w => (w.length > 0 ? w[0].toUpperCase() + w.slice(1) : w))
+      .map((w) => (w.length > 0 ? w[0].toUpperCase() + w.slice(1) : w))
       .join(" ");
     if (humanized.length > 0 && humanized.length <= 12) return humanized;
   }
-  const stripped = question.label.replace(/^(which|what|how many|how)\s+/i, "").trim();
+  const stripped = question.label
+    .replace(/^(which|what|how many|how)\s+/i, "")
+    .trim();
   return stripped.slice(0, 12).trim() || "Choice";
 }
 
@@ -298,25 +312,31 @@ function truncateToWords(text: string, maxWords: number): string {
  * with <2 options are skipped — the text-formatted portion of the response
  * already covers them. Returns null if nothing is eligible.
  */
-function buildAskUserQuestionPayload(askBlock: AskBlock): AskUserQuestionPayload | null {
+function buildAskUserQuestionPayload(
+  askBlock: AskBlock,
+): AskUserQuestionPayload | null {
   const entries: AskUserQuestionEntry[] = [];
 
   for (const q of askBlock.questions) {
     if (!q.options || q.options.length < 2) continue;
 
     // Schema caps options at 4; take the first 4 and normalize.
-    const options: AskUserQuestionOption[] = q.options.slice(0, 4).map(opt => {
-      const rawLabel = opt.label || opt.value || "Option";
-      return {
-        label: truncateToWords(rawLabel, 5),
-        // description is required on every option — fall back through label/value
-        description: opt.description || rawLabel,
-      };
-    });
+    const options: AskUserQuestionOption[] = q.options
+      .slice(0, 4)
+      .map((opt) => {
+        const rawLabel = opt.label || opt.value || "Option";
+        return {
+          label: truncateToWords(rawLabel, 5),
+          // description is required on every option — fall back through label/value
+          description: opt.description || rawLabel,
+        };
+      });
 
     if (options.length < 2) continue;
 
-    const questionText = q.label.trim().endsWith("?") ? q.label.trim() : `${q.label.trim()}?`;
+    const questionText = q.label.trim().endsWith("?")
+      ? q.label.trim()
+      : `${q.label.trim()}?`;
 
     entries.push({
       question: questionText,
@@ -358,7 +378,9 @@ function formatAskBlockForCLI(message: string, callerTool: string): string {
   }
 
   parts.push("");
-  parts.push("IMPORTANT: Present these questions to the user. Do NOT auto-answer them.");
+  parts.push(
+    "IMPORTANT: Present these questions to the user. Do NOT auto-answer them.",
+  );
   parts.push(
     "Only fill in values the user has already provided in this conversation. For any missing value, ask the user directly.",
   );
@@ -366,7 +388,9 @@ function formatAskBlockForCLI(message: string, callerTool: string): string {
     "If a question has an MCP tool suggestion (-> line), you may run that tool to gather options to present, but still let the user pick.",
   );
   parts.push("");
-  parts.push(`Once you have the user's answers, call \`${callerTool}\` again with them formatted as:`);
+  parts.push(
+    `Once you have the user's answers, call \`${callerTool}\` again with them formatted as:`,
+  );
   parts.push(...answerLines);
 
   // Emit an AskUserQuestion-shaped payload for questions with discrete choices
@@ -409,7 +433,11 @@ interface PlanBlock {
 // Matches only the first [[PLAN]] block.
 const PLAN_BLOCK_REGEX = /\[\[PLAN\]\]\s*([\s\S]*?)\s*\[\[\/PLAN\]\]/;
 
-function parsePlanBlock(message: string): { before: string; planBlock: PlanBlock | null; after: string } {
+function parsePlanBlock(message: string): {
+  before: string;
+  planBlock: PlanBlock | null;
+  after: string;
+} {
   const match = message.match(PLAN_BLOCK_REGEX);
 
   if (!match) {
@@ -466,11 +494,15 @@ function formatPlanBlockForCLI(message: string, callerTool: string): string {
   }
 
   parts.push("");
-  parts.push("IMPORTANT: Present this plan to the user for review. Do NOT auto-approve it.");
+  parts.push(
+    "IMPORTANT: Present this plan to the user for review. Do NOT auto-approve it.",
+  );
   parts.push(
     `If the user approves, call \`${callerTool}\` again with "Looks good, build it." to generate the full workflow definition.`,
   );
-  parts.push(`If the user wants changes, call \`${callerTool}\` with their feedback.`);
+  parts.push(
+    `If the user wants changes, call \`${callerTool}\` with their feedback.`,
+  );
 
   if (after) {
     parts.push("");
@@ -496,7 +528,10 @@ function formatPlanBlockForCLI(message: string, callerTool: string): string {
  * ASK and PLAN are mutually exclusive in Caddie's output (the agent must
  * choose one per response), so ASK takes precedence if both are present.
  */
-export function formatCaddieBlocksForCLI(message: string, callerTool = "b3os_build_workflow"): string {
+export function formatCaddieBlocksForCLI(
+  message: string,
+  callerTool = "b3os_build_workflow",
+): string {
   if (message.includes("[[ASK]]")) {
     return formatAskBlockForCLI(message, callerTool);
   }
