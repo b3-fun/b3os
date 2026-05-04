@@ -3,7 +3,11 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { z, type ZodTypeAny } from "zod";
 import { serializeShape } from "./schema-serializer.js";
-import { buildCoercionPlan, coerceArgsFast, type CoercionPlan } from "./param-coercion.js";
+import {
+  buildCoercionPlan,
+  coerceArgsFast,
+  type CoercionPlan,
+} from "./param-coercion.js";
 import { formatHint } from "./hint-formatter.js";
 
 /**
@@ -14,7 +18,10 @@ interface ToolMetadata {
   plan: CoercionPlan;
   validator: z.ZodObject<Record<string, ZodTypeAny>>;
   shape: Record<string, ZodTypeAny>; // cached from validator.shape to avoid getter on error path
-  handler: (args: Record<string, unknown>, extra: unknown) => Promise<CallToolResult>;
+  handler: (
+    args: Record<string, unknown>,
+    extra: unknown,
+  ) => Promise<CallToolResult>;
   signature: string;
 }
 
@@ -39,7 +46,9 @@ function getMetadataMap(server: McpServer): Map<string, ToolMetadata> {
   return map;
 }
 
-export interface RegisterToolSafeDef<S extends Record<string, ZodTypeAny> = Record<string, ZodTypeAny>> {
+export interface RegisterToolSafeDef<
+  S extends Record<string, ZodTypeAny> = Record<string, ZodTypeAny>,
+> {
   description: string;
   inputSchema: S;
   aliases?: Record<string, string>;
@@ -57,7 +66,10 @@ export function registerToolSafe<S extends Record<string, ZodTypeAny>>(
   server: McpServer,
   name: string,
   def: RegisterToolSafeDef<S>,
-  handler: (args: z.infer<z.ZodObject<S>>, extra: unknown) => Promise<CallToolResult>,
+  handler: (
+    args: z.infer<z.ZodObject<S>>,
+    extra: unknown,
+  ) => Promise<CallToolResult>,
 ): void {
   const aliases = def.aliases ?? {};
   const shape = def.inputSchema;
@@ -129,7 +141,10 @@ export function installHintInterceptor(server: McpServer): void {
   const underlying = (
     server as unknown as {
       server: {
-        _requestHandlers: Map<string, (req: unknown, extra: unknown) => Promise<unknown>>;
+        _requestHandlers: Map<
+          string,
+          (req: unknown, extra: unknown) => Promise<unknown>
+        >;
         setRequestHandler: (schema: unknown, handler: unknown) => void;
       };
     }
@@ -143,42 +158,47 @@ export function installHintInterceptor(server: McpServer): void {
 
   const original = underlying._requestHandlers.get("tools/call");
   if (!original) {
-    throw new Error("installHintInterceptor: no tools/call handler registered yet — call after registering tools");
+    throw new Error(
+      "installHintInterceptor: no tools/call handler registered yet — call after registering tools",
+    );
   }
 
   const metadataMap = getMetadataMap(server);
 
-  underlying.setRequestHandler(CallToolRequestSchema, async (request: unknown, extra: unknown) => {
-    const req = request as { params: { name: string; arguments: unknown } };
-    const toolName = req.params.name;
-    const meta = metadataMap.get(toolName);
+  underlying.setRequestHandler(
+    CallToolRequestSchema,
+    async (request: unknown, extra: unknown) => {
+      const req = request as { params: { name: string; arguments: unknown } };
+      const toolName = req.params.name;
+      const meta = metadataMap.get(toolName);
 
-    // Unknown tool (or not registered via registerToolSafe): delegate to the
-    // SDK's original handler so its default behavior (not-found errors, tools
-    // registered via other means) is preserved.
-    if (!meta) {
-      return original(request, extra);
-    }
+      // Unknown tool (or not registered via registerToolSafe): delegate to the
+      // SDK's original handler so its default behavior (not-found errors, tools
+      // registered via other means) is preserved.
+      if (!meta) {
+        return original(request, extra);
+      }
 
-    const coerced = coerceArgsFast(req.params.arguments, meta.plan, toolName);
-    const parseResult = meta.validator.safeParse(coerced);
+      const coerced = coerceArgsFast(req.params.arguments, meta.plan, toolName);
+      const parseResult = meta.validator.safeParse(coerced);
 
-    if (!parseResult.success) {
-      const hint = formatHint({
-        toolName,
-        shape: meta.shape,
-        rawArgs: req.params.arguments,
-        error: parseResult.error,
-        signature: meta.signature,
-      });
-      return {
-        content: [{ type: "text", text: hint }],
-        isError: true,
-      };
-    }
+      if (!parseResult.success) {
+        const hint = formatHint({
+          toolName,
+          shape: meta.shape,
+          rawArgs: req.params.arguments,
+          error: parseResult.error,
+          signature: meta.signature,
+        });
+        return {
+          content: [{ type: "text", text: hint }],
+          isError: true,
+        };
+      }
 
-    return meta.handler(parseResult.data as Record<string, unknown>, extra);
-  });
+      return meta.handler(parseResult.data as Record<string, unknown>, extra);
+    },
+  );
 
   // Mark as installed AFTER setRequestHandler succeeds, so a throw during
   // setup leaves the server in a state where retry is possible.

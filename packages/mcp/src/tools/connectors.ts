@@ -1,7 +1,15 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ApiError, request, truncateResponse } from "../client.js";
-import type { ActionTestResult, Connector, PaginatedData, SlackChannel, TelegramChat, Wallet } from "../types.js";
+import type {
+  ActionTestResult,
+  Connector,
+  ConnectorType,
+  PaginatedData,
+  SlackChannel,
+  TelegramChat,
+  Wallet,
+} from "../types.js";
 import { registerToolSafe } from "./register-tool-safe.js";
 import { validateOrgId } from "./shared.js";
 
@@ -14,7 +22,9 @@ export function registerConnectorTools(s: McpServer): void {
 (HSM-backed). Useful for workflows that send tokens or interact with DeFi protocols.
 
 Requires orgId — call b3os_whoami first to get it.`,
-      inputSchema: { orgId: z.string().describe("Organization ID from b3os_whoami") },
+      inputSchema: {
+        orgId: z.string().describe("Organization ID from b3os_whoami"),
+      },
     },
     async ({ orgId }) => {
       validateOrgId(orgId);
@@ -27,10 +37,13 @@ Requires orgId — call b3os_whoami first to get it.`,
       for (let page = 0; page < maxPages; page++) {
         const remaining = deadline - Date.now();
         if (remaining <= 0) break;
-        const data = await request<PaginatedData<Wallet>>(`/v1/organizations/${orgId}/wallets`, {
-          params: { limit: String(limit), offset: String(offset) },
-          timeout: Math.max(remaining, 1000),
-        });
+        const data = await request<PaginatedData<Wallet>>(
+          `/v1/organizations/${orgId}/wallets`,
+          {
+            params: { limit: String(limit), offset: String(offset) },
+            timeout: Math.max(remaining, 1000),
+          },
+        );
         const items = data?.items || [];
         allWallets.push(...items);
         if (!data?.hasMore || items.length === 0) break;
@@ -38,7 +51,7 @@ Requires orgId — call b3os_whoami first to get it.`,
       }
 
       const text = JSON.stringify(
-        allWallets.map(w => ({
+        allWallets.map((w) => ({
           id: w.id,
           name: w.name,
           address: w.address,
@@ -55,14 +68,15 @@ Requires orgId — call b3os_whoami first to get it.`,
     s,
     "b3os_list_connectors",
     {
-      description: `List configured connectors (OAuth integrations) for the organization. Connectors are
-credentials for external services — Slack, Discord, Google Sheets, wallets, etc.
+      description: `List configured OAuth connectors for the organization. Connectors are credentials
+for external services that require OAuth — Slack, Discord, Telegram, Gmail, Google Sheets.
 
-Use this to discover which connectors are available before building workflows. The
-connector ID is needed for workflow nodes that interact with external services:
-  "connector": { "type": "slack", "id": "conn_abc123" }
+IMPORTANT: This does NOT list wallets. On-chain actions (send tokens, swaps, DeFi,
+perps trading) use org wallets from b3os_list_wallets, NOT connectors. Only use this
+tool when the workflow needs an OAuth-based integration.
 
-Without this tool, you'd have to use placeholder connector references.`,
+The connector ID is needed for workflow nodes that interact with OAuth services:
+  "connector": { "type": "slack", "id": "conn_abc123" }`,
       inputSchema: {},
     },
     async () => {
@@ -75,13 +89,13 @@ Without this tool, you'd have to use placeholder connector references.`,
           content: [
             {
               type: "text",
-              text: "No connectors configured yet.\n\nConnectors link workflows to external services (Slack, Telegram, Gmail, wallets, etc.). Set up your first connector at: https://b3os.org/connectors",
+              text: "No OAuth connectors configured yet.\n\nConnectors are needed for external services like Slack, Telegram, Gmail, Discord, and Google Sheets. Set one up at: https://b3os.org/connectors\n\nNote: On-chain actions (send tokens, swaps, DeFi, perps) use org wallets, not connectors. Use b3os_list_wallets to see available wallets.",
             },
           ],
         };
       }
       const text = JSON.stringify(
-        connectors.map(c => ({
+        connectors.map((c) => ({
           id: c.id,
           name: c.name,
           type: c.type,
@@ -106,8 +120,16 @@ Filter by connectorId to see chats for a specific Telegram bot.
 
 Call b3os_list_connectors first to find telegram-bot connector IDs.`,
       inputSchema: {
-        connectorId: z.string().optional().describe("Filter by telegram-bot connector ID (from b3os_list_connectors)"),
-        query: z.string().optional().describe("Search query to filter chats by title or username"),
+        connectorId: z
+          .string()
+          .optional()
+          .describe(
+            "Filter by telegram-bot connector ID (from b3os_list_connectors)",
+          ),
+        query: z
+          .string()
+          .optional()
+          .describe("Search query to filter chats by title or username"),
       },
     },
     async ({ connectorId, query }) => {
@@ -115,7 +137,10 @@ Call b3os_list_connectors first to find telegram-bot connector IDs.`,
       if (connectorId) params.connector_id = connectorId;
       if (query) params.query = query;
 
-      const data = await request<PaginatedData<TelegramChat>>("/v1/telegram-bot/chats", { params });
+      const data = await request<PaginatedData<TelegramChat>>(
+        "/v1/telegram-bot/chats",
+        { params },
+      );
       const chats = data?.items || [];
       if (chats.length === 0) {
         const hint = connectorId
@@ -124,7 +149,7 @@ Call b3os_list_connectors first to find telegram-bot connector IDs.`,
         return { content: [{ type: "text", text: hint }] };
       }
       const text = JSON.stringify(
-        chats.map(c => ({
+        chats.map((c) => ({
           chatId: c.chatId,
           chatTitle: c.chatTitle,
           chatType: c.chatType,
@@ -149,7 +174,9 @@ before building workflows with slack-send-message or slack-post-message.
 Returns channel id, name, type (public/private), and member count.
 Requires a slack connector ID — call b3os_list_connectors first.`,
       inputSchema: {
-        connectorId: z.string().describe("Slack connector ID (from b3os_list_connectors)"),
+        connectorId: z
+          .string()
+          .describe("Slack connector ID (from b3os_list_connectors)"),
       },
     },
     async ({ connectorId }) => {
@@ -164,13 +191,16 @@ Requires a slack connector ID — call b3os_list_connectors first.`,
           const inputs: Record<string, unknown> = { limit: 1000 };
           if (cursor) inputs.cursor = cursor;
 
-          data = await request<ActionTestResult>("/v1/actions/slack-list-channels/test", {
-            method: "POST",
-            body: {
-              inputs,
-              connector: { id: connectorId, type: "slack" },
+          data = await request<ActionTestResult>(
+            "/v1/actions/slack-list-channels/test",
+            {
+              method: "POST",
+              body: {
+                inputs,
+                connector: { id: connectorId, type: "slack" },
+              },
             },
-          });
+          );
         } catch (err: unknown) {
           if (err instanceof ApiError && err.status === 400) {
             return {
@@ -185,7 +215,9 @@ Requires a slack connector ID — call b3os_list_connectors first.`,
           // Surface transient errors instead of silently returning empty results
           const msg = err instanceof Error ? err.message : String(err);
           return {
-            content: [{ type: "text", text: `Failed to fetch Slack channels: ${msg}` }],
+            content: [
+              { type: "text", text: `Failed to fetch Slack channels: ${msg}` },
+            ],
           };
         }
 
@@ -217,7 +249,8 @@ Requires a slack connector ID — call b3os_list_connectors first.`,
         }
 
         const nextCursor = ret.next_cursor;
-        if (!nextCursor || typeof nextCursor !== "string" || newCount === 0) break;
+        if (!nextCursor || typeof nextCursor !== "string" || newCount === 0)
+          break;
         cursor = nextCursor;
       }
 
@@ -233,7 +266,7 @@ Requires a slack connector ID — call b3os_list_connectors first.`,
       }
 
       const text = JSON.stringify(
-        allChannels.map(c => ({
+        allChannels.map((c) => ({
           id: c.id,
           name: c.name,
           type: c.is_private ? "private" : "public",
@@ -243,6 +276,42 @@ Requires a slack connector ID — call b3os_list_connectors first.`,
         2,
       );
       return { content: [{ type: "text", text: truncateResponse(text) }] };
+    },
+  );
+
+  registerToolSafe(
+    s,
+    "b3os_list_connector_types",
+    {
+      description: `List all available connector types (Slack, Telegram, Discord, Gmail, wallet, etc.).
+Shows what kinds of external service integrations B3OS supports, even if your org
+hasn't configured them yet. Use this to understand what's possible before asking
+the user to set up connectors at https://b3os.org/connectors.`,
+      inputSchema: {},
+    },
+    async () => {
+      const types = await request<ConnectorType[]>("/v1/connector-types", {
+        noAuth: true,
+      });
+      return {
+        content: [
+          {
+            type: "text",
+            text: truncateResponse(
+              JSON.stringify(
+                (types || []).map((t) => ({
+                  type: t.type,
+                  name: t.name,
+                  description: t.description,
+                  category: t.category,
+                })),
+                null,
+                2,
+              ),
+            ),
+          },
+        ],
+      };
     },
   );
 }

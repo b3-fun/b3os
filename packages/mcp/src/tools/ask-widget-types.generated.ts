@@ -33,6 +33,7 @@ export const ASK_WIDGET_TYPES = [
   "connector-account",
   "database-table",
   "morpho-vault",
+  "hyperliquid-asset",
 ] as const;
 
 export type AskWidgetType = (typeof ASK_WIDGET_TYPES)[number];

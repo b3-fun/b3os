@@ -7,13 +7,23 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 export async function callTool(server: McpServer, name: string, args: unknown) {
   const underlying = (
     server as unknown as {
-      server: { _requestHandlers: Map<string, (req: unknown, extra: unknown) => Promise<unknown>> };
+      server: {
+        _requestHandlers: Map<
+          string,
+          (req: unknown, extra: unknown) => Promise<unknown>
+        >;
+      };
     }
   ).server;
   const handler = underlying._requestHandlers.get("tools/call");
   if (!handler) throw new Error("no tools/call handler");
   return handler(
     { params: { name, arguments: args }, method: "tools/call" },
-    { sendNotification: () => {}, signal: new AbortController().signal, requestId: 1, sessionId: "test" },
+    {
+      sendNotification: () => {},
+      signal: new AbortController().signal,
+      requestId: 1,
+      sessionId: "test",
+    },
   );
 }

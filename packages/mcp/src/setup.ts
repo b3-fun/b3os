@@ -1,18 +1,47 @@
 #!/usr/bin/env node
 import { randomBytes } from "node:crypto";
-import { readFileSync, writeFileSync, existsSync, chmodSync, realpathSync } from "node:fs";
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  chmodSync,
+  realpathSync,
+} from "node:fs";
 import { join, dirname } from "node:path";
 import { homedir, hostname, userInfo } from "node:os";
 import { fileURLToPath } from "node:url";
 import { execSync, spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import { waitForOAuthCallback } from "./oauth-callback.js";
-import { createApiKey, createServiceAccount, findServiceAccountByName } from "./b3os-api.js";
-import { detectKeystore, readApiKey, storeApiKey, type KeystoreKind } from "./keystore.js";
+import {
+  createApiKey,
+  createServiceAccount,
+  findServiceAccountByName,
+} from "./b3os-api.js";
+import {
+  detectKeystore,
+  readApiKey,
+  storeApiKey,
+  type KeystoreKind,
+} from "./keystore.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const B3OS_SERVER_URL = "https://api.b3os.org";
-const B3OS_WEB_URL = "https://b3os.org";
+
+const ENV_URLS: Record<string, { api: string; web: string }> = {
+  dev: { api: "https://dev-api.b3os.org", web: "https://dev.b3os.org" },
+  local: { api: "http://localhost:8080", web: "http://localhost:3000" },
+  prod: { api: "https://api.b3os.org", web: "https://b3os.org" },
+};
+const envKey = process.env.B3OS_ENV;
+const envUrls = envKey ? ENV_URLS[envKey] : undefined;
+if (envKey && !envUrls) {
+  console.error(`✗ Unknown B3OS_ENV='${envKey}'. Use dev, local, or prod.`);
+  process.exit(1);
+}
+const B3OS_SERVER_URL =
+  process.env.B3OS_SERVER_URL || envUrls?.api || "https://api.b3os.org";
+const B3OS_WEB_URL =
+  process.env.B3OS_WEB_URL || envUrls?.web || "https://b3os.org";
 
 /** Explicit permissions required by b3os-mcp at runtime — matches read-write scope. */
 const MCP_SA_PERMISSIONS = [
@@ -24,6 +53,7 @@ const MCP_SA_PERMISSIONS = [
   "workflow:publish",
   "connector:read",
   "action:read",
+  "action_proxy:execute",
   "run:read",
   "run:stream",
   "run:cancel",
@@ -92,14 +122,17 @@ function print(msg: string): void {
  * callers don't hang.
  */
 function waitForEnter(promptText: string): Promise<void> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     process.stdout.write(promptText);
     if (!process.stdin.isTTY) {
       process.stdout.write("\n");
       resolve();
       return;
     }
-    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    const rl = createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
     const done = (): void => {
       rl.close();
       resolve();
@@ -151,7 +184,9 @@ function ensureBuild(): void {
   try {
     execSync("pnpm build", { cwd: getPackageDir(), stdio: "inherit" });
   } catch {
-    print("\n  ✗ Build failed. Run 'pnpm build' manually in packages/b3os-mcp/");
+    print(
+      "\n  ✗ Build failed. Run 'pnpm build' manually in packages/b3os-mcp/",
+    );
     process.exit(1);
   }
 
@@ -190,7 +225,8 @@ function linkGlobally(): LinkResult {
   // Windows equivalent. Without this, a Windows user with a global install
   // would fall through to `npm link` and re-trigger the ENOENT bug this
   // function is designed to avoid.
-  const findOnPath = process.platform === "win32" ? "where b3os-mcp" : "which b3os-mcp";
+  const findOnPath =
+    process.platform === "win32" ? "where b3os-mcp" : "which b3os-mcp";
 
   // Fast path: already on PATH, nothing to do.
   try {
@@ -253,7 +289,8 @@ function buildServerEntry(
 function isStaleAbsolutePathEntry(entry: unknown): boolean {
   if (!entry || typeof entry !== "object") return false;
   const e = entry as Record<string, unknown>;
-  if (e.command !== "node" || !Array.isArray(e.args) || e.args.length === 0) return false;
+  if (e.command !== "node" || !Array.isArray(e.args) || e.args.length === 0)
+    return false;
   const firstArg = String(e.args[0]);
   // Only match absolute paths to our index.js, not custom node setups
   return firstArg.startsWith("/") && firstArg.endsWith("/index.js");
@@ -263,10 +300,15 @@ function isStaleAbsolutePathEntry(entry: unknown): boolean {
 
 function readJsonConfig(filePath: string): Record<string, unknown> {
   try {
-    return JSON.parse(readFileSync(filePath, "utf-8")) as Record<string, unknown>;
+    return JSON.parse(readFileSync(filePath, "utf-8")) as Record<
+      string,
+      unknown
+    >;
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
-      print(`  ⚠ Could not parse existing config at ${filePath} — creating fresh`);
+      print(
+        `  ⚠ Could not parse existing config at ${filePath} — creating fresh`,
+      );
     }
     return {};
   }
@@ -302,10 +344,11 @@ export function mergeAllowedTools(
   config: Record<string, unknown>,
   tools: readonly string[],
 ): { config: Record<string, unknown>; added: number } {
-  const perms = (config.permissions && typeof config.permissions === "object" ? config.permissions : {}) as Record<
-    string,
-    unknown
-  >;
+  const perms = (
+    config.permissions && typeof config.permissions === "object"
+      ? config.permissions
+      : {}
+  ) as Record<string, unknown>;
   const allow = Array.isArray(perms.allow) ? (perms.allow as string[]) : [];
   const existing = new Set(allow);
   let added = 0;
@@ -326,9 +369,19 @@ export function mergeAllowedTools(
 function getClaudeDesktopConfigPath(): string {
   const platform = process.platform;
   if (platform === "darwin") {
-    return join(homedir(), "Library", "Application Support", "Claude", "claude_desktop_config.json");
+    return join(
+      homedir(),
+      "Library",
+      "Application Support",
+      "Claude",
+      "claude_desktop_config.json",
+    );
   } else if (platform === "win32") {
-    return join(process.env.APPDATA || join(homedir(), "AppData", "Roaming"), "Claude", "claude_desktop_config.json");
+    return join(
+      process.env.APPDATA || join(homedir(), "AppData", "Roaming"),
+      "Claude",
+      "claude_desktop_config.json",
+    );
   }
   // Linux
   return join(homedir(), ".config", "Claude", "claude_desktop_config.json");
@@ -348,9 +401,15 @@ function setupClaudeDesktop(
   const config = readJsonConfig(configPath);
 
   const raw = config.mcpServers;
-  const mcpServers = (typeof raw === "object" && raw && !Array.isArray(raw) ? raw : {}) as Record<string, unknown>;
+  const mcpServers = (
+    typeof raw === "object" && raw && !Array.isArray(raw) ? raw : {}
+  ) as Record<string, unknown>;
   const migrated = isStaleAbsolutePathEntry(mcpServers["b3os-mcp"]);
-  mcpServers["b3os-mcp"] = buildServerEntry(apiKey, useGlobalCommand, keystoreKind);
+  mcpServers["b3os-mcp"] = buildServerEntry(
+    apiKey,
+    useGlobalCommand,
+    keystoreKind,
+  );
   config.mcpServers = mcpServers;
 
   writeJsonConfig(configPath, config);
@@ -373,7 +432,9 @@ function getUserMcpJsonPath(): string {
  */
 function findGitRoot(): string | null {
   try {
-    return execSync("git rev-parse --show-toplevel", { stdio: "pipe" }).toString().trim();
+    return execSync("git rev-parse --show-toplevel", { stdio: "pipe" })
+      .toString()
+      .trim();
   } catch {
     return null;
   }
@@ -419,12 +480,19 @@ function writeMcpJsonEntry(
 ): { migrated: boolean } {
   const config = readJsonConfig(filePath) as McpJson;
   const mcpServers = (
-    typeof config.mcpServers === "object" && config.mcpServers && !Array.isArray(config.mcpServers)
+    typeof config.mcpServers === "object" &&
+    config.mcpServers &&
+    !Array.isArray(config.mcpServers)
       ? config.mcpServers
       : {}
   ) as Record<string, unknown>;
   const migrated = isStaleAbsolutePathEntry(mcpServers["b3os-mcp"]);
-  mcpServers["b3os-mcp"] = buildServerEntry(apiKey, useGlobalCommand, keystoreKind, opts);
+  mcpServers["b3os-mcp"] = buildServerEntry(
+    apiKey,
+    useGlobalCommand,
+    keystoreKind,
+    opts,
+  );
   config.mcpServers = mcpServers;
   writeJsonConfig(filePath, config);
   return { migrated };
@@ -454,7 +522,9 @@ async function runDiagnose(): Promise<void> {
   }
   if (!key) {
     if (kind === "plaintext-fallback") {
-      print("  Item:      – plaintext-fallback (key lives in ~/.claude/mcp.json env block)");
+      print(
+        "  Item:      – plaintext-fallback (key lives in ~/.claude/mcp.json env block)",
+      );
     } else {
       print("  Item:      ✗ not found");
       print("  Fix:       Run: b3os-mcp-setup");
@@ -479,7 +549,9 @@ async function runDiagnose(): Promise<void> {
     print("  If the key is correct but the call fails, check:");
     print("    - B3OS_SERVER_URL (default: https://api.b3os.org)");
     print("    - Network reachability");
-    print("    - Key revocation status at b3os.org/organizations/settings?tab=api-keys");
+    print(
+      "    - Key revocation status at b3os.org/organizations/settings?tab=api-keys",
+    );
   }
 }
 
@@ -488,7 +560,8 @@ async function runDiagnose(): Promise<void> {
 // ANSI color codes — brand blue #6C8EEF (closest 256-color: 111).
 // Guard against non-TTY output (piped/CI), NO_COLOR env (no-color.org), and dumb terminals
 // to avoid printing raw escape sequences as literal garbage.
-const supportsColor = process.stdout.isTTY && !process.env.NO_COLOR && process.env.TERM !== "dumb";
+const supportsColor =
+  process.stdout.isTTY && !process.env.NO_COLOR && process.env.TERM !== "dumb";
 const BRAND = supportsColor ? "\x1b[38;5;111m\x1b[1m" : "";
 const DIM = supportsColor ? "\x1b[2m" : "";
 const RESET = supportsColor ? "\x1b[0m" : "";
@@ -529,7 +602,9 @@ async function main(): Promise<void> {
   authUrl.searchParams.set("mode", "mcp-setup");
   const authUrlStr = authUrl.toString();
 
-  await waitForEnter("     Press Enter to open the B3OS sign-in page in your browser... ");
+  await waitForEnter(
+    "     Press Enter to open the B3OS sign-in page in your browser... ",
+  );
   print("");
   openBrowser(authUrlStr);
   print("     If your browser didn't open, paste this URL manually:");
@@ -545,7 +620,9 @@ async function main(): Promise<void> {
     orgId = callback.orgId;
   } catch (err) {
     print(`\n  ✗ Sign-in failed: ${errMsg(err)}`);
-    print("    Make sure you completed sign-in in the browser, then re-run b3os-mcp-setup.");
+    print(
+      "    Make sure you completed sign-in in the browser, then re-run b3os-mcp-setup.",
+    );
     process.exit(1);
   }
 
@@ -585,7 +662,9 @@ async function main(): Promise<void> {
     }
   } catch (err) {
     print(`\n  ✗ Failed to create service account: ${errMsg(err)}`);
-    print("    If this is a permissions error, ask your org admin to grant you the");
+    print(
+      "    If this is a permissions error, ask your org admin to grant you the",
+    );
     print("    `service_account:write` and `apikey:create` permissions.");
     print("    Otherwise, re-run b3os-mcp-setup to try again.");
     process.exit(1);
@@ -607,8 +686,12 @@ async function main(): Promise<void> {
   } catch (err) {
     print(`\n  ✗ Failed to create API key: ${errMsg(err)}`);
     if (saCreatedThisRun) {
-      print(`    An empty service account '${saName}' (${sa.id}) was created and may be left behind.`);
-      print("    You can delete it from b3os.org/organizations/settings?tab=api-keys,");
+      print(
+        `    An empty service account '${saName}' (${sa.id}) was created and may be left behind.`,
+      );
+      print(
+        "    You can delete it from b3os.org/organizations/settings?tab=api-keys,",
+      );
     }
     print("    Re-run b3os-mcp-setup to try again.");
     process.exit(1);
@@ -629,16 +712,24 @@ async function main(): Promise<void> {
   }
 
   if (keystoreKind === "macos-keychain") {
-    print(`  ✓ macOS Keychain — service 'b3os-mcp', account '${userInfo().username}'`);
+    print(
+      `  ✓ macOS Keychain — service 'b3os-mcp', account '${userInfo().username}'`,
+    );
     print("    ℹ Key is encrypted at rest — no plaintext on disk.");
-    print("    ℹ To revoke later: security delete-generic-password -s b3os-mcp");
+    print(
+      "    ℹ To revoke later: security delete-generic-password -s b3os-mcp",
+    );
   } else if (keystoreKind === "windows-dpapi") {
     print("  ✓ Windows DPAPI — encrypted at ~/.b3os/b3os-mcp-key.dpapi");
     print("    ℹ Decryptable only by this Windows user on this machine.");
     print("    ℹ To revoke later: delete that file + revoke key at b3os.org.");
   } else {
-    print("  – Linux detected — OS keystore not available, using plaintext fallback.");
-    print("    Key will be stored in ~/.claude/mcp.json (owner-only, not committed).");
+    print(
+      "  – Linux detected — OS keystore not available, using plaintext fallback.",
+    );
+    print(
+      "    Key will be stored in ~/.claude/mcp.json (owner-only, not committed).",
+    );
   }
   print("");
 
@@ -664,7 +755,13 @@ async function main(): Promise<void> {
   // 4a: Claude Code — user-scoped (~/.claude/mcp.json, works in all projects)
   const userMcpPath = getUserMcpJsonPath();
   {
-    const { migrated } = writeMcpJsonEntry(userMcpPath, apiKey, useGlobalCommand, keystoreKind, { type: "stdio" });
+    const { migrated } = writeMcpJsonEntry(
+      userMcpPath,
+      apiKey,
+      useGlobalCommand,
+      keystoreKind,
+      { type: "stdio" },
+    );
     print(`  ✓ Claude Code (global) — ${userMcpPath}`);
     if (migrated) print("    ✓ Migrated from absolute path to global command");
   }
@@ -673,25 +770,40 @@ async function main(): Promise<void> {
   const projectMcpPath = getProjectMcpJsonPath();
   if (projectMcpPath) {
     if (isMcpJsonGitignored()) {
-      const { migrated } = writeMcpJsonEntry(projectMcpPath, apiKey, useGlobalCommand, keystoreKind, {
-        type: "stdio",
-      });
+      const { migrated } = writeMcpJsonEntry(
+        projectMcpPath,
+        apiKey,
+        useGlobalCommand,
+        keystoreKind,
+        {
+          type: "stdio",
+        },
+      );
       print(`  ✓ Claude Code (project) — ${projectMcpPath}`);
-      if (migrated) print("    ✓ Migrated from absolute path to global command");
+      if (migrated)
+        print("    ✓ Migrated from absolute path to global command");
     } else {
       if (keystoreKind === "plaintext-fallback") {
-        print("  – Skipped project .mcp.json (not in .gitignore — would leak API key)");
+        print(
+          "  – Skipped project .mcp.json (not in .gitignore — would leak API key)",
+        );
       } else {
         print("  – Skipped project .mcp.json (not in .gitignore)");
       }
-      print("    Add '.mcp.json' to your .gitignore to enable project-scoped config");
+      print(
+        "    Add '.mcp.json' to your .gitignore to enable project-scoped config",
+      );
     }
   }
 
   // 4c: Claude Desktop
   let claudeDesktopConfigured = false;
   if (isClaudeDesktopInstalled()) {
-    const { migrated } = setupClaudeDesktop(apiKey, useGlobalCommand, keystoreKind);
+    const { migrated } = setupClaudeDesktop(
+      apiKey,
+      useGlobalCommand,
+      keystoreKind,
+    );
     print("  ✓ Claude Desktop — configured");
     if (migrated) print("    ✓ Migrated from absolute path to global command");
     claudeDesktopConfigured = true;
@@ -701,25 +813,38 @@ async function main(): Promise<void> {
 
   if (!claudeDesktopConfigured) {
     print("");
-    print("  ℹ To use B3OS with Claude Desktop, install it from https://claude.ai/download");
+    print(
+      "  ℹ To use B3OS with Claude Desktop, install it from https://claude.ai/download",
+    );
     print("    and re-run this setup.");
   }
 
   // Auto-approve safe read-only tools (no prompt)
   print("");
-  print(`  7. Pre-approving ${SAFE_AUTO_APPROVE_TOOLS.length} read-only b3os-mcp tools...`);
+  print(
+    `  7. Pre-approving ${SAFE_AUTO_APPROVE_TOOLS.length} read-only b3os-mcp tools...`,
+  );
   {
     const settingsPath = getClaudeCodeSettingsPath();
     const config = readJsonConfig(settingsPath);
-    const { config: merged, added } = mergeAllowedTools(config, SAFE_AUTO_APPROVE_TOOLS);
+    const { config: merged, added } = mergeAllowedTools(
+      config,
+      SAFE_AUTO_APPROVE_TOOLS,
+    );
     writeJsonConfig(settingsPath, merged);
     if (added > 0) {
       print(`  ✓ Added ${added} tools to ${settingsPath}`);
     } else {
-      print(`  ✓ All ${SAFE_AUTO_APPROVE_TOOLS.length} tools already pre-approved`);
+      print(
+        `  ✓ All ${SAFE_AUTO_APPROVE_TOOLS.length} tools already pre-approved`,
+      );
     }
-    print("    Write tools (create/update/delete/run) still require approval per call.");
-    print("    To revert: remove the mcp__b3os-mcp__* entries from permissions.allow");
+    print(
+      "    Write tools (create/update/delete/run) still require approval per call.",
+    );
+    print(
+      "    To revert: remove the mcp__b3os-mcp__* entries from permissions.allow",
+    );
   }
 
   print("");
@@ -745,7 +870,7 @@ function isEntryPoint(): boolean {
 }
 
 if (isEntryPoint()) {
-  main().catch(err => {
+  main().catch((err) => {
     print(`\n  ✗ Setup failed: ${errMsg(err)}`);
     process.exit(1);
   });

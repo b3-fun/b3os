@@ -27,7 +27,14 @@ describe("formatAskBlockForCLI", () => {
   });
 
   it("shows tool instructions for slack-channel", () => {
-    const msg = askMsg([{ id: "ch", type: "slack-channel", label: "Which Slack channel?", required: true }]);
+    const msg = askMsg([
+      {
+        id: "ch",
+        type: "slack-channel",
+        label: "Which Slack channel?",
+        required: true,
+      },
+    ]);
     const result = formatCaddieBlocksForCLI(msg);
     expect(result).toContain("b3os_list_connectors");
     expect(result).toContain("b3os_list_slack_channels");
@@ -35,21 +42,37 @@ describe("formatAskBlockForCLI", () => {
   });
 
   it("shows tool instructions for turnkey-wallet", () => {
-    const msg = askMsg([{ id: "wallet", type: "turnkey-wallet", label: "Which wallet?", required: true }]);
+    const msg = askMsg([
+      {
+        id: "wallet",
+        type: "turnkey-wallet",
+        label: "Which wallet?",
+        required: true,
+      },
+    ]);
     const result = formatCaddieBlocksForCLI(msg);
     expect(result).toContain("b3os_whoami");
     expect(result).toContain("b3os_list_wallets");
   });
 
   it("shows inline chain IDs for chain-id type", () => {
-    const msg = askMsg([{ id: "chain", type: "chain-id", label: "Which blockchain?" }]);
+    const msg = askMsg([
+      { id: "chain", type: "chain-id", label: "Which blockchain?" },
+    ]);
     const result = formatCaddieBlocksForCLI(msg);
     expect(result).toContain("8453=Base");
     expect(result).toContain("1=Ethereum");
   });
 
   it("surfaces default values", () => {
-    const msg = askMsg([{ id: "chain", type: "chain-id", label: "Which blockchain?", default: 8453 }]);
+    const msg = askMsg([
+      {
+        id: "chain",
+        type: "chain-id",
+        label: "Which blockchain?",
+        default: 8453,
+      },
+    ]);
     const result = formatCaddieBlocksForCLI(msg);
     expect(result).toContain("Default: 8453");
   });
@@ -92,14 +115,17 @@ describe("formatAskBlockForCLI", () => {
   });
 
   it("handles unknown widget type gracefully", () => {
-    const msg = askMsg([{ id: "x", type: "future-widget-v99", label: "New thing" }]);
+    const msg = askMsg([
+      { id: "x", type: "future-widget-v99", label: "New thing" },
+    ]);
     const result = formatCaddieBlocksForCLI(msg);
     expect(result).toContain("1. **New thing**");
     expect(result).not.toContain("   -> "); // no tool instruction for unknown type
   });
 
   it("returns before text for empty questions array", () => {
-    const msg = 'Some context\n[[ASK]]\n{"questions":[]}\n[[/ASK]]\nTrailing text';
+    const msg =
+      'Some context\n[[ASK]]\n{"questions":[]}\n[[/ASK]]\nTrailing text';
     const result = formatCaddieBlocksForCLI(msg);
     expect(result).toBe(msg); // passes through unchanged
   });
@@ -120,7 +146,8 @@ describe("formatAskBlockForCLI", () => {
 
   it("handles repaired JSON with trailing commas", () => {
     // Simulate LLM trailing comma — the repair logic should fix it
-    const msg = '[[ASK]]\n{"questions":[{"id":"x","type":"text","label":"Name",},]}\n[[/ASK]]';
+    const msg =
+      '[[ASK]]\n{"questions":[{"id":"x","type":"text","label":"Name",},]}\n[[/ASK]]';
     const result = formatCaddieBlocksForCLI(msg);
     expect(result).toContain("1. **Name**");
   });
@@ -139,19 +166,28 @@ describe("formatAskBlockForCLI", () => {
   });
 
   it("shows token-address tool instructions", () => {
-    const msg = askMsg([{ id: "token", type: "token-address", label: "Which token?" }]);
+    const msg = askMsg([
+      { id: "token", type: "token-address", label: "Which token?" },
+    ]);
     const result = formatCaddieBlocksForCLI(msg);
     expect(result).toContain("b3os_token_lookup");
   });
 
   it("shows telegram-chat tool instructions", () => {
-    const msg = askMsg([{ id: "chat", type: "telegram-chat", label: "Which Telegram chat?" }]);
+    const msg = askMsg([
+      { id: "chat", type: "telegram-chat", label: "Which Telegram chat?" },
+    ]);
     const result = formatCaddieBlocksForCLI(msg);
     expect(result).toContain("b3os_list_telegram_chats");
   });
 });
 
-function planMsg(changes: unknown[], note?: string, before = "", after = ""): string {
+function planMsg(
+  changes: unknown[],
+  note?: string,
+  before = "",
+  after = "",
+): string {
   const block = `[[PLAN]]\n${JSON.stringify({ changes, ...(note ? { note } : {}) })}\n[[/PLAN]]`;
   return [before, block, after].filter(Boolean).join("\n");
 }
@@ -164,14 +200,26 @@ describe("formatCaddieBlocksForCLI — PLAN blocks", () => {
 
   it("formats a plan with changes", () => {
     const msg = planMsg([
-      { action: "add", nodeId: "node-1", type: "coingecko-price", description: "Check ETH price" },
-      { action: "add", nodeId: "node-2", type: "slack-send-message", description: "Send Slack alert" },
+      {
+        action: "add",
+        nodeId: "node-1",
+        type: "coingecko-price",
+        description: "Check ETH price",
+      },
+      {
+        action: "add",
+        nodeId: "node-2",
+        type: "slack-send-message",
+        description: "Send Slack alert",
+      },
     ]);
     const result = formatCaddieBlocksForCLI(msg);
     expect(result).toContain("Caddie proposes the following workflow plan:");
     expect(result).toContain("1. [ADD] Check ETH price (coingecko-price)");
     expect(result).toContain("2. [ADD] Send Slack alert (slack-send-message)");
-    expect(result).toContain("IMPORTANT: Present this plan to the user for review");
+    expect(result).toContain(
+      "IMPORTANT: Present this plan to the user for review",
+    );
     expect(result).toContain("Looks good, build it.");
   });
 
@@ -198,8 +246,16 @@ describe("formatCaddieBlocksForCLI — PLAN blocks", () => {
 
   it("handles update and remove actions", () => {
     const msg = planMsg([
-      { action: "update", nodeId: "node-1", description: "Change threshold to $1500" },
-      { action: "remove", nodeId: "node-3", description: "Remove duplicate filter" },
+      {
+        action: "update",
+        nodeId: "node-1",
+        description: "Change threshold to $1500",
+      },
+      {
+        action: "remove",
+        nodeId: "node-3",
+        description: "Remove duplicate filter",
+      },
     ]);
     const result = formatCaddieBlocksForCLI(msg);
     expect(result).toContain("[UPDATE] Change threshold to $1500");
@@ -212,7 +268,9 @@ describe("formatCaddieBlocksForCLI — PLAN blocks", () => {
   });
 
   it("includes feedback instruction", () => {
-    const msg = planMsg([{ action: "add", nodeId: "n1", description: "A step" }]);
+    const msg = planMsg([
+      { action: "add", nodeId: "n1", description: "A step" },
+    ]);
     const result = formatCaddieBlocksForCLI(msg);
     expect(result).toContain("If the user wants changes");
   });
@@ -234,9 +292,13 @@ describe("formatCaddieBlocksForCLI — callerTool parameter", () => {
   });
 
   it("uses callerTool in PLAN footer for approve and feedback", () => {
-    const msg = planMsg([{ action: "add", nodeId: "n1", description: "A step" }]);
+    const msg = planMsg([
+      { action: "add", nodeId: "n1", description: "A step" },
+    ]);
     const result = formatCaddieBlocksForCLI(msg, "b3os_debug_run");
-    expect(result).toContain('call `b3os_debug_run` again with "Looks good, build it."');
+    expect(result).toContain(
+      'call `b3os_debug_run` again with "Looks good, build it."',
+    );
     expect(result).toContain("call `b3os_debug_run` with their feedback");
     expect(result).not.toContain("b3os_build_workflow");
   });
@@ -244,13 +306,17 @@ describe("formatCaddieBlocksForCLI — callerTool parameter", () => {
 
 describe("getAnswerPlaceholder — address types", () => {
   it("uses <0x...> for address type", () => {
-    const msg = askMsg([{ id: "addr", type: "address", label: "Wallet address" }]);
+    const msg = askMsg([
+      { id: "addr", type: "address", label: "Wallet address" },
+    ]);
     const result = formatCaddieBlocksForCLI(msg);
     expect(result).toContain("Wallet address: <0x...>");
   });
 
   it("uses <0x...> for recipient-address type", () => {
-    const msg = askMsg([{ id: "to", type: "recipient-address", label: "Recipient" }]);
+    const msg = askMsg([
+      { id: "to", type: "recipient-address", label: "Recipient" },
+    ]);
     const result = formatCaddieBlocksForCLI(msg);
     expect(result).toContain("Recipient: <0x...>");
   });
@@ -258,8 +324,11 @@ describe("getAnswerPlaceholder — address types", () => {
 
 // Extract the JSON payload between the AskUserQuestion markers so tests can
 // assert on structured content rather than the wrapping text.
-function extractAskUserQuestionPayload(text: string): { questions: Array<Record<string, unknown>> } | null {
-  const openMarker = "=== AskUserQuestion payload (pass to AskUserQuestion verbatim) ===";
+function extractAskUserQuestionPayload(
+  text: string,
+): { questions: Array<Record<string, unknown>> } | null {
+  const openMarker =
+    "=== AskUserQuestion payload (pass to AskUserQuestion verbatim) ===";
   const closeMarker = "=== end AskUserQuestion payload ===";
   const start = text.indexOf(openMarker);
   if (start === -1) return null;
@@ -277,8 +346,16 @@ describe("formatCaddieBlocksForCLI — AskUserQuestion payload", () => {
         type: "select",
         label: "What should happen on each check?",
         options: [
-          { value: "post", label: "Post price every time", description: "Send on every tick" },
-          { value: "threshold", label: "Alert only on threshold", description: "Only when crossed" },
+          {
+            value: "post",
+            label: "Post price every time",
+            description: "Send on every tick",
+          },
+          {
+            value: "threshold",
+            label: "Alert only on threshold",
+            description: "Only when crossed",
+          },
         ],
       },
     ]);
@@ -340,7 +417,10 @@ describe("formatCaddieBlocksForCLI — AskUserQuestion payload", () => {
         type: "select",
         label: "Pick one?",
         options: [
-          { value: "a", label: "Post the current price to Slack every single tick" },
+          {
+            value: "a",
+            label: "Post the current price to Slack every single tick",
+          },
           { value: "b", label: "Alert only on threshold crossing events" },
         ],
       },
@@ -461,7 +541,9 @@ describe("formatCaddieBlocksForCLI — AskUserQuestion payload", () => {
     ]);
     const result = formatCaddieBlocksForCLI(msg);
     const payload = extractAskUserQuestionPayload(result);
-    const q = payload!.questions[0] as { options: Array<{ description: string }> };
+    const q = payload!.questions[0] as {
+      options: Array<{ description: string }>;
+    };
     expect(q.options[0].description).toBe("First letter");
     expect(q.options[1].description).toBe("Beta");
   });
