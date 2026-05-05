@@ -22,8 +22,7 @@ function listTsFiles(dir: string): string[] {
 describe("no raw server.registerTool calls in tools/", () => {
   it("only register-tool-safe.ts may call server.registerTool directly", () => {
     const files = listTsFiles(TOOLS_DIR);
-    const violations: Array<{ file: string; line: number; content: string }> =
-      [];
+    const violations: Array<{ file: string; line: number; content: string }> = [];
 
     for (const file of files) {
       // register-tool-safe.ts is the ONE legitimate caller — it implements the wrapper
@@ -35,32 +34,23 @@ describe("no raw server.registerTool calls in tools/", () => {
       // done to a copy; reported line numbers still come from the original.
       const stripped = content
         // Remove /* ... */ block comments (non-greedy, multiline)
-        .replace(/\/\*[\s\S]*?\*\//g, (block) => block.replace(/[^\n]/g, " "))
+        .replace(/\/\*[\s\S]*?\*\//g, block => block.replace(/[^\n]/g, " "))
         // Remove // line comments (preserve newline)
-        .replace(/\/\/[^\n]*/g, (line) => " ".repeat(line.length));
+        .replace(/\/\/[^\n]*/g, line => " ".repeat(line.length));
       const lines = stripped.split("\n");
       lines.forEach((line, idx) => {
         // Match calls like `s.registerTool(`, `server.registerTool(`, or `.registerTool(`
         // but NOT `registerToolSafe(` (our wrapper).
-        if (
-          /\.registerTool\s*\(/.test(line) &&
-          !/registerToolSafe/.test(line)
-        ) {
+        if (/\.registerTool\s*\(/.test(line) && !/registerToolSafe/.test(line)) {
           // Report the original line for a more useful error message.
           const originalLine = content.split("\n")[idx] ?? line;
-          violations.push({
-            file: file.replace(TOOLS_DIR, "tools"),
-            line: idx + 1,
-            content: originalLine.trim(),
-          });
+          violations.push({ file: file.replace(TOOLS_DIR, "tools"), line: idx + 1, content: originalLine.trim() });
         }
       });
     }
 
     if (violations.length > 0) {
-      const msg = violations
-        .map((v) => `  ${v.file}:${v.line}: ${v.content}`)
-        .join("\n");
+      const msg = violations.map(v => `  ${v.file}:${v.line}: ${v.content}`).join("\n");
       throw new Error(
         `Raw server.registerTool calls are forbidden — use registerToolSafe from './register-tool-safe.js' instead.\n\n` +
           `This ensures every tool gets auto-generated signature blocks, alias coercion, and rich failure hints.\n\n` +

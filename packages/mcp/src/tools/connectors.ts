@@ -22,9 +22,7 @@ export function registerConnectorTools(s: McpServer): void {
 (HSM-backed). Useful for workflows that send tokens or interact with DeFi protocols.
 
 Requires orgId — call b3os_whoami first to get it.`,
-      inputSchema: {
-        orgId: z.string().describe("Organization ID from b3os_whoami"),
-      },
+      inputSchema: { orgId: z.string().describe("Organization ID from b3os_whoami") },
     },
     async ({ orgId }) => {
       validateOrgId(orgId);
@@ -37,13 +35,10 @@ Requires orgId — call b3os_whoami first to get it.`,
       for (let page = 0; page < maxPages; page++) {
         const remaining = deadline - Date.now();
         if (remaining <= 0) break;
-        const data = await request<PaginatedData<Wallet>>(
-          `/v1/organizations/${orgId}/wallets`,
-          {
-            params: { limit: String(limit), offset: String(offset) },
-            timeout: Math.max(remaining, 1000),
-          },
-        );
+        const data = await request<PaginatedData<Wallet>>(`/v1/organizations/${orgId}/wallets`, {
+          params: { limit: String(limit), offset: String(offset) },
+          timeout: Math.max(remaining, 1000),
+        });
         const items = data?.items || [];
         allWallets.push(...items);
         if (!data?.hasMore || items.length === 0) break;
@@ -51,7 +46,7 @@ Requires orgId — call b3os_whoami first to get it.`,
       }
 
       const text = JSON.stringify(
-        allWallets.map((w) => ({
+        allWallets.map(w => ({
           id: w.id,
           name: w.name,
           address: w.address,
@@ -95,7 +90,7 @@ The connector ID is needed for workflow nodes that interact with OAuth services:
         };
       }
       const text = JSON.stringify(
-        connectors.map((c) => ({
+        connectors.map(c => ({
           id: c.id,
           name: c.name,
           type: c.type,
@@ -120,16 +115,8 @@ Filter by connectorId to see chats for a specific Telegram bot.
 
 Call b3os_list_connectors first to find telegram-bot connector IDs.`,
       inputSchema: {
-        connectorId: z
-          .string()
-          .optional()
-          .describe(
-            "Filter by telegram-bot connector ID (from b3os_list_connectors)",
-          ),
-        query: z
-          .string()
-          .optional()
-          .describe("Search query to filter chats by title or username"),
+        connectorId: z.string().optional().describe("Filter by telegram-bot connector ID (from b3os_list_connectors)"),
+        query: z.string().optional().describe("Search query to filter chats by title or username"),
       },
     },
     async ({ connectorId, query }) => {
@@ -137,10 +124,7 @@ Call b3os_list_connectors first to find telegram-bot connector IDs.`,
       if (connectorId) params.connector_id = connectorId;
       if (query) params.query = query;
 
-      const data = await request<PaginatedData<TelegramChat>>(
-        "/v1/telegram-bot/chats",
-        { params },
-      );
+      const data = await request<PaginatedData<TelegramChat>>("/v1/telegram-bot/chats", { params });
       const chats = data?.items || [];
       if (chats.length === 0) {
         const hint = connectorId
@@ -149,7 +133,7 @@ Call b3os_list_connectors first to find telegram-bot connector IDs.`,
         return { content: [{ type: "text", text: hint }] };
       }
       const text = JSON.stringify(
-        chats.map((c) => ({
+        chats.map(c => ({
           chatId: c.chatId,
           chatTitle: c.chatTitle,
           chatType: c.chatType,
@@ -174,9 +158,7 @@ before building workflows with slack-send-message or slack-post-message.
 Returns channel id, name, type (public/private), and member count.
 Requires a slack connector ID — call b3os_list_connectors first.`,
       inputSchema: {
-        connectorId: z
-          .string()
-          .describe("Slack connector ID (from b3os_list_connectors)"),
+        connectorId: z.string().describe("Slack connector ID (from b3os_list_connectors)"),
       },
     },
     async ({ connectorId }) => {
@@ -191,16 +173,13 @@ Requires a slack connector ID — call b3os_list_connectors first.`,
           const inputs: Record<string, unknown> = { limit: 1000 };
           if (cursor) inputs.cursor = cursor;
 
-          data = await request<ActionTestResult>(
-            "/v1/actions/slack-list-channels/test",
-            {
-              method: "POST",
-              body: {
-                inputs,
-                connector: { id: connectorId, type: "slack" },
-              },
+          data = await request<ActionTestResult>("/v1/actions/slack-list-channels/test", {
+            method: "POST",
+            body: {
+              inputs,
+              connector: { id: connectorId, type: "slack" },
             },
-          );
+          });
         } catch (err: unknown) {
           if (err instanceof ApiError && err.status === 400) {
             return {
@@ -215,9 +194,7 @@ Requires a slack connector ID — call b3os_list_connectors first.`,
           // Surface transient errors instead of silently returning empty results
           const msg = err instanceof Error ? err.message : String(err);
           return {
-            content: [
-              { type: "text", text: `Failed to fetch Slack channels: ${msg}` },
-            ],
+            content: [{ type: "text", text: `Failed to fetch Slack channels: ${msg}` }],
           };
         }
 
@@ -249,8 +226,7 @@ Requires a slack connector ID — call b3os_list_connectors first.`,
         }
 
         const nextCursor = ret.next_cursor;
-        if (!nextCursor || typeof nextCursor !== "string" || newCount === 0)
-          break;
+        if (!nextCursor || typeof nextCursor !== "string" || newCount === 0) break;
         cursor = nextCursor;
       }
 
@@ -266,7 +242,7 @@ Requires a slack connector ID — call b3os_list_connectors first.`,
       }
 
       const text = JSON.stringify(
-        allChannels.map((c) => ({
+        allChannels.map(c => ({
           id: c.id,
           name: c.name,
           type: c.is_private ? "private" : "public",
@@ -290,16 +266,14 @@ the user to set up connectors at https://b3os.org/connectors.`,
       inputSchema: {},
     },
     async () => {
-      const types = await request<ConnectorType[]>("/v1/connector-types", {
-        noAuth: true,
-      });
+      const types = await request<ConnectorType[]>("/v1/connector-types", { noAuth: true });
       return {
         content: [
           {
             type: "text",
             text: truncateResponse(
               JSON.stringify(
-                (types || []).map((t) => ({
+                (types || []).map(t => ({
                   type: t.type,
                   name: t.name,
                   description: t.description,

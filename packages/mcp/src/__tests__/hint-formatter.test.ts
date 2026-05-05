@@ -1,10 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import {
-  formatHint,
-  levenshtein,
-  synthesizeExample,
-} from "../tools/hint-formatter.js";
+import { formatHint, levenshtein, synthesizeExample } from "../tools/hint-formatter.js";
 
 describe("levenshtein", () => {
   it("returns 0 for identical strings", () => {

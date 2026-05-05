@@ -9,9 +9,7 @@ export const definitionSchema = z
   .describe("Workflow definition (JSON object with nodes map)");
 
 /** Payload schema — must be a key-value object, not a primitive or array. */
-export const payloadSchema = z
-  .record(z.string(), z.any())
-  .describe("Payload key-value object");
+export const payloadSchema = z.record(z.string(), z.any()).describe("Payload key-value object");
 
 export function validateWorkflowId(workflowId: string): void {
   if (!/^wf_\w+$/.test(workflowId)) {
@@ -27,24 +25,18 @@ export function validateRunId(runId: string): void {
 
 export function validateOrgId(orgId: string): void {
   if (!/^org_\w+$/.test(orgId)) {
-    throw new Error(
-      "Invalid orgId format — expected 'org_' prefix (e.g. 'org_abc123')",
-    );
+    throw new Error("Invalid orgId format — expected 'org_' prefix (e.g. 'org_abc123')");
   }
 }
 
 export function validateTemplateId(templateId: string): void {
   if (!/^tmpl_\w+$/.test(templateId)) {
-    throw new Error(
-      "Invalid templateId format — expected 'tmpl_' prefix (e.g. 'tmpl_abc123')",
-    );
+    throw new Error("Invalid templateId format — expected 'tmpl_' prefix (e.g. 'tmpl_abc123')");
   }
 }
 
 export function auditLog(action: string, detail?: string): void {
-  console.error(
-    `[b3os-mcp] ${action}${detail ? ` ${detail}` : ""} at ${new Date().toISOString()}`,
-  );
+  console.error(`[b3os-mcp] ${action}${detail ? ` ${detail}` : ""} at ${new Date().toISOString()}`);
 }
 
 /**
@@ -82,7 +74,6 @@ export function applyClientSideFilter<T>(
 ): { items: T[]; hasMore: boolean } {
   if (!predicate) return { items, hasMore: apiHasMore };
   const filtered = items.filter(predicate);
-  if (filtered.length > safeLimit)
-    return { items: filtered.slice(0, safeLimit), hasMore: true };
+  if (filtered.length > safeLimit) return { items: filtered.slice(0, safeLimit), hasMore: true };
   return { items: filtered, hasMore: apiHasMore };
 }

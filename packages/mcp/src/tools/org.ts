@@ -18,15 +18,10 @@ export function registerOrgTools(s: McpServer): void {
       inputSchema: {},
     },
     async () => {
-      const data =
-        await request<PaginatedData<Organization>>("/v1/organizations");
+      const data = await request<PaginatedData<Organization>>("/v1/organizations");
       const orgs = data?.items || [];
       if (orgs.length === 0) {
-        return {
-          content: [
-            { type: "text", text: "No organization found for this API key." },
-          ],
-        };
+        return { content: [{ type: "text", text: "No organization found for this API key." }] };
       }
       const org = orgs[0];
       return {
@@ -84,9 +79,7 @@ Requires orgId — call b3os_whoami first to get it.`,
 After logout, all b3os tools will fail until you re-run b3os-mcp-setup to sign in again.
 Always confirm with the user before calling this tool.`,
       inputSchema: {
-        confirm: z
-          .literal(true)
-          .describe("Must be exactly true to confirm logout"),
+        confirm: z.literal(true).describe("Must be exactly true to confirm logout"),
       },
     },
     async () => {

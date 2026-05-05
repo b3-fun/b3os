@@ -17,26 +17,17 @@ describe("applySpecificAliases", () => {
   });
 
   it("renames per-tool alias (workflow -> definition)", () => {
-    const result = applySpecificAliases(
-      { workflow: { nodes: {} } },
-      { workflow: "definition" },
-    );
+    const result = applySpecificAliases({ workflow: { nodes: {} } }, { workflow: "definition" });
     expect(result).toEqual({ definition: { nodes: {} } });
   });
 
   it("per-tool alias overrides global on the same key", () => {
-    const result = applySpecificAliases(
-      { prompt: "x" },
-      { prompt: "customField" },
-    );
+    const result = applySpecificAliases({ prompt: "x" }, { prompt: "customField" });
     expect(result).toEqual({ customField: "x" });
   });
 
   it("does not rename when the canonical key is already present", () => {
-    const result = applySpecificAliases(
-      { prompt: "x", message: "already" },
-      {},
-    );
+    const result = applySpecificAliases({ prompt: "x", message: "already" }, {});
     expect(result).toEqual({ prompt: "x", message: "already" });
   });
 
@@ -69,18 +60,12 @@ describe("applySnakeToCamelAliases", () => {
   });
 
   it("leaves unrelated keys untouched", () => {
-    const result = applySnakeToCamelAliases(
-      { connector_id: "a", extra: "b" },
-      shape,
-    );
+    const result = applySnakeToCamelAliases({ connector_id: "a", extra: "b" }, shape);
     expect(result).toEqual({ connectorId: "a", extra: "b" });
   });
 
   it("does not rename if canonical key already present", () => {
-    const result = applySnakeToCamelAliases(
-      { connector_id: "a", connectorId: "b" },
-      shape,
-    );
+    const result = applySnakeToCamelAliases({ connector_id: "a", connectorId: "b" }, shape);
     expect(result).toEqual({ connector_id: "a", connectorId: "b" });
   });
 
@@ -99,18 +84,12 @@ describe("applyStringToObjectCoercion", () => {
   };
 
   it("parses JSON string for object-typed field", () => {
-    const result = applyStringToObjectCoercion(
-      { definition: '{"nodes":{}}' },
-      shape,
-    );
+    const result = applyStringToObjectCoercion({ definition: '{"nodes":{}}' }, shape);
     expect(result).toEqual({ definition: { nodes: {} } });
   });
 
   it("leaves object-typed field alone when already an object", () => {
-    const result = applyStringToObjectCoercion(
-      { definition: { nodes: {} } },
-      shape,
-    );
+    const result = applyStringToObjectCoercion({ definition: { nodes: {} } }, shape);
     expect(result).toEqual({ definition: { nodes: {} } });
   });
 
@@ -120,21 +99,13 @@ describe("applyStringToObjectCoercion", () => {
   });
 
   it("handles optional object-typed field wrapped in ZodOptional", () => {
-    const shapeWithOptional = {
-      definition: z.object({ nodes: z.record(z.string(), z.any()) }).optional(),
-    };
-    const result = applyStringToObjectCoercion(
-      { definition: '{"nodes":{"a":1}}' },
-      shapeWithOptional,
-    );
+    const shapeWithOptional = { definition: z.object({ nodes: z.record(z.string(), z.any()) }).optional() };
+    const result = applyStringToObjectCoercion({ definition: '{"nodes":{"a":1}}' }, shapeWithOptional);
     expect(result).toEqual({ definition: { nodes: { a: 1 } } });
   });
 
   it("leaves invalid JSON string as-is (lets zod report it)", () => {
-    const result = applyStringToObjectCoercion(
-      { definition: "not json" },
-      shape,
-    );
+    const result = applyStringToObjectCoercion({ definition: "not json" }, shape);
     expect(result).toEqual({ definition: "not json" });
   });
 });
@@ -158,11 +129,7 @@ describe("coerceArgs (integration)", () => {
       aliases,
       "test_tool",
     );
-    expect(result).toEqual({
-      message: "hi",
-      workflowId: "wf_1",
-      definition: { nodes: {} },
-    });
+    expect(result).toEqual({ message: "hi", workflowId: "wf_1", definition: { nodes: {} } });
   });
 
   it("passes canonical inputs through unchanged", () => {
@@ -173,11 +140,7 @@ describe("coerceArgs (integration)", () => {
   it("logs telemetry for each alias firing", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     coerceArgs({ prompt: "hi" }, shape, aliases, "test_tool");
-    expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        "alias-fired tool=test_tool from=prompt to=message",
-      ),
-    );
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining("alias-fired tool=test_tool from=prompt to=message"));
   });
 
   it("does not log when no alias fires", () => {
@@ -196,16 +159,8 @@ describe("buildCoercionPlan + coerceArgsFast", () => {
     };
     const plan = buildCoercionPlan(shape, {});
     vi.spyOn(console, "error").mockImplementation(() => {});
-    const result = coerceArgsFast(
-      { prompt: "hi", workflow_id: "wf_1", definition: '{"nodes":{}}' },
-      plan,
-      "test_tool",
-    );
-    expect(result).toEqual({
-      message: "hi",
-      workflowId: "wf_1",
-      definition: { nodes: {} },
-    });
+    const result = coerceArgsFast({ prompt: "hi", workflow_id: "wf_1", definition: '{"nodes":{}}' }, plan, "test_tool");
+    expect(result).toEqual({ message: "hi", workflowId: "wf_1", definition: { nodes: {} } });
   });
 
   it("passes canonical inputs through unchanged (no allocation if no coercion)", () => {

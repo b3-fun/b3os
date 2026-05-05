@@ -1,13 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { request, truncateResponse } from "../client.js";
-import type {
-  ActionDefinition,
-  Organization,
-  PaginatedData,
-  Run,
-  Wallet,
-} from "../types.js";
+import type { ActionDefinition, Organization, PaginatedData, Run, Wallet } from "../types.js";
 import {
   ACTION_TYPE_RE,
   definitionSchema,
@@ -20,33 +14,20 @@ import {
 } from "./shared.js";
 import { registerToolSafe } from "./register-tool-safe.js";
 
-export type WalletResolution =
-  | { ok: true; walletId: string }
-  | { ok: false; error: string };
+export type WalletResolution = { ok: true; walletId: string } | { ok: false; error: string };
 
 export async function resolveWalletId(): Promise<WalletResolution> {
-  const orgData =
-    await request<PaginatedData<Organization>>("/v1/organizations");
+  const orgData = await request<PaginatedData<Organization>>("/v1/organizations");
   const org = orgData?.items?.[0];
-  if (!org)
-    return {
-      ok: false,
-      error: "No organization found. Set up your org at https://b3os.org",
-    };
+  if (!org) return { ok: false, error: "No organization found. Set up your org at https://b3os.org" };
 
-  const walletData = await request<PaginatedData<Wallet>>(
-    `/v1/organizations/${org.id}/wallets`,
-    {
-      params: { limit: "2" },
-    },
-  );
+  const walletData = await request<PaginatedData<Wallet>>(`/v1/organizations/${org.id}/wallets`, {
+    params: { limit: "2" },
+  });
   const wallets = walletData?.items || [];
 
   if (wallets.length === 0) {
-    return {
-      ok: false,
-      error: "No wallets found. Create one at https://b3os.org",
-    };
+    return { ok: false, error: "No wallets found. Create one at https://b3os.org" };
   }
   if (wallets.length === 1) {
     return { ok: true, walletId: wallets[0].id };
@@ -72,9 +53,7 @@ address, token symbol, or other parameters).`,
         workflowId: z.string().describe("Workflow ID to run"),
         payload: payloadSchema
           .optional()
-          .describe(
-            "Optional trigger payload data (for manual triggers that expect input)",
-          ),
+          .describe("Optional trigger payload data (for manual triggers that expect input)"),
       },
     },
     async ({ workflowId, payload }) => {
@@ -83,15 +62,11 @@ address, token symbol, or other parameters).`,
       const body: Record<string, unknown> = {};
       if (payload !== undefined) body.payload = payload;
 
-      const result = await request<{ runId: string }>(
-        `/v1/workflows/${workflowId}/run`,
-        {
-          method: "POST",
-          body: Object.keys(body).length > 0 ? body : undefined,
-        },
-      );
-      if (!result?.runId)
-        throw new Error(`Failed to trigger workflow ${workflowId}`);
+      const result = await request<{ runId: string }>(`/v1/workflows/${workflowId}/run`, {
+        method: "POST",
+        body: Object.keys(body).length > 0 ? body : undefined,
+      });
+      if (!result?.runId) throw new Error(`Failed to trigger workflow ${workflowId}`);
       return {
         content: [
           {
@@ -145,9 +120,7 @@ Use b3os_search_actions to discover available action types.`,
         connectorId: z
           .string()
           .optional()
-          .describe(
-            "Connector ID for non-wallet authenticated actions (Slack, Telegram, etc.)",
-          ),
+          .describe("Connector ID for non-wallet authenticated actions (Slack, Telegram, etc.)"),
       },
     },
     async ({ actionType, inputs, walletId, connectorId }) => {
@@ -179,9 +152,7 @@ Use b3os_search_actions to discover available action types.`,
         if (walletId) {
           effectiveConnectorId = walletId;
         } else {
-          const actionDef = await request<ActionDefinition>(
-            `/v1/actions/${actionType}`,
-          );
+          const actionDef = await request<ActionDefinition>(`/v1/actions/${actionType}`);
           if (actionDef?.connector?.type === "wallet") {
             const resolved = await resolveWalletId();
             if (!resolved.ok) {
@@ -204,25 +175,16 @@ Use b3os_search_actions to discover available action types.`,
       };
       if (effectiveConnectorId) body.connectorId = effectiveConnectorId;
 
-      const result = await request<{
-        result: Record<string, unknown>;
-        durationMs: number;
-      }>(`/v1/actions/${actionType}/run`, {
-        method: "POST",
-        body,
-        timeout: 35_000,
-      });
+      const result = await request<{ result: Record<string, unknown>; durationMs: number }>(
+        `/v1/actions/${actionType}/run`,
+        { method: "POST", body, timeout: 35_000 },
+      );
 
       if (!result) throw new Error("Action returned empty response");
 
       const text = truncateResponse(JSON.stringify(result.result, null, 2));
       return {
-        content: [
-          {
-            type: "text",
-            text: `${actionType} (${result.durationMs}ms):\n${text}`,
-          },
-        ],
+        content: [{ type: "text", text: `${actionType} (${result.durationMs}ms):\n${text}` }],
       };
     },
   );
@@ -245,9 +207,7 @@ The typical one-shot flow:
 That's it — one call, nothing persisted.`,
       inputSchema: {
         definition: definitionSchema,
-        payload: payloadSchema
-          .optional()
-          .describe("Optional trigger payload data"),
+        payload: payloadSchema.optional().describe("Optional trigger payload data"),
       },
     },
     async ({ definition, payload }) => {
@@ -258,10 +218,7 @@ That's it — one call, nothing persisted.`,
       const result = await request<{
         runId: string;
         status: string;
-        executionState: Record<
-          string,
-          { type: string; status: string; result?: Record<string, unknown> }
-        >;
+        executionState: Record<string, { type: string; status: string; result?: Record<string, unknown> }>;
         durationMs: number;
       }>("/v1/runs/sync", {
         method: "POST",
@@ -272,19 +229,14 @@ That's it — one call, nothing persisted.`,
       if (!result) throw new Error("Sync run returned empty response");
 
       const parts: string[] = [];
-      parts.push(
-        `Run ${result.runId}: ${result.status} (${result.durationMs}ms)`,
-      );
+      parts.push(`Run ${result.runId}: ${result.status} (${result.durationMs}ms)`);
 
       if (result.executionState) {
         for (const [nodeId, node] of Object.entries(result.executionState)) {
           if (nodeId === "root") continue;
           if (node.status === "failure") {
             parts.push(`\n--- FAILED: ${nodeId} (${node.type}) ---`);
-            if (node.result)
-              parts.push(
-                truncateResponse(JSON.stringify(node.result, null, 2)),
-              );
+            if (node.result) parts.push(truncateResponse(JSON.stringify(node.result, null, 2)));
           } else if (node.status === "success" && node.result) {
             parts.push(`\n--- ${nodeId} (${node.type}) ---`);
             parts.push(truncateResponse(JSON.stringify(node.result, null, 2)));
@@ -292,9 +244,7 @@ That's it — one call, nothing persisted.`,
         }
       }
 
-      return {
-        content: [{ type: "text", text: truncateResponse(parts.join("\n")) }],
-      };
+      return { content: [{ type: "text", text: truncateResponse(parts.join("\n")) }] };
     },
   );
 
@@ -309,9 +259,7 @@ Use status="failure" to find failed runs for debugging.`,
         status: z
           .enum(["running", "success", "failure", "waiting", "cancelled"])
           .optional()
-          .describe(
-            "Filter by run status (e.g. 'failure' to find failed runs)",
-          ),
+          .describe("Filter by run status (e.g. 'failure' to find failed runs)"),
         limit: z.number().optional().describe("Max results (default: 20)"),
         offset: z
           .number()
@@ -322,11 +270,7 @@ Use status="failure" to find failed runs for debugging.`,
       },
     },
     async ({ workflowId, status, limit, offset }) => {
-      const { params, safeLimit } = buildPaginationParams({
-        limit,
-        offset,
-        status,
-      });
+      const { params, safeLimit } = buildPaginationParams({ limit, offset, status });
       if (workflowId) params.workflowId = workflowId;
       const data = await request<PaginatedData<Run>>("/v1/runs", { params });
       const { items: runs, hasMore } = applyClientSideFilter(
@@ -342,7 +286,7 @@ Use status="failure" to find failed runs for debugging.`,
             type: "text",
             text: JSON.stringify(
               {
-                runs: runs.map((r) => ({
+                runs: runs.map(r => ({
                   id: r.id,
                   workflowId: r.workflowId,
                   status: r.status,
@@ -380,15 +324,11 @@ Check the failed node's input and result fields to understand what went wrong.`,
         summary: z
           .boolean()
           .optional()
-          .describe(
-            "When true, omit ExecutionState and WorkflowDefinition to reduce payload size",
-          ),
+          .describe("When true, omit ExecutionState and WorkflowDefinition to reduce payload size"),
         nodeIds: z
           .array(z.string())
           .optional()
-          .describe(
-            "Only include these node IDs in ExecutionState (comma-separated in the API)",
-          ),
+          .describe("Only include these node IDs in ExecutionState (comma-separated in the API)"),
       },
     },
     async ({ runId, summary, nodeIds }) => {
@@ -399,14 +339,7 @@ Check the failed node's input and result fields to understand what went wrong.`,
 
       const run = await request<Run>(`/v1/runs/${runId}`, { params });
       if (!run) throw new Error(`Run ${runId} not found`);
-      return {
-        content: [
-          {
-            type: "text",
-            text: truncateResponse(JSON.stringify(run, null, 2)),
-          },
-        ],
-      };
+      return { content: [{ type: "text", text: truncateResponse(JSON.stringify(run, null, 2)) }] };
     },
   );
 
@@ -443,10 +376,7 @@ Use b3os_get_run to inspect the failure first, then retry after fixing the root 
     async ({ runId }) => {
       validateRunId(runId);
       auditLog("RETRY", `run ${runId}`);
-      const result = await request<{ runId: string }>(
-        `/v1/runs/${runId}/retry`,
-        { method: "POST" },
-      );
+      const result = await request<{ runId: string }>(`/v1/runs/${runId}/retry`, { method: "POST" });
       if (!result?.runId) throw new Error(`Failed to retry run ${runId}`);
       return {
         content: [

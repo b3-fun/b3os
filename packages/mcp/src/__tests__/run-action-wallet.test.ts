@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 import { createServer } from "../server.js";
 
 vi.mock("../client.js", async () => {
-  const actual =
-    await vi.importActual<typeof import("../client.js")>("../client.js");
+  const actual = await vi.importActual<typeof import("../client.js")>("../client.js");
   return {
     ...actual,
     request: vi.fn(),
@@ -56,12 +55,7 @@ describe("b3os_run_action — wallet resolution", () => {
 
     const result = await callTool(server, "b3os_run_action", {
       actionType: "relay-swap",
-      inputs: {
-        srcChainId: 8453,
-        tokenIn: "native",
-        tokenOut: "0xUSDC",
-        amountOut: "10000000",
-      },
+      inputs: { srcChainId: 8453, tokenIn: "native", tokenOut: "0xUSDC", amountOut: "10000000" },
       walletId: "wal_explicit123",
     });
 
@@ -76,25 +70,12 @@ describe("b3os_run_action — wallet resolution", () => {
 
   it("auto-uses the only wallet when walletId omitted and org has exactly one", async () => {
     mockRequest
-      .mockResolvedValueOnce({
-        type: "relay-swap",
-        connector: { type: "wallet" },
-      })
+      .mockResolvedValueOnce({ type: "relay-swap", connector: { type: "wallet" } })
       .mockResolvedValueOnce({ items: [{ id: "org_test1" }] })
       .mockResolvedValueOnce({
-        items: [
-          {
-            id: "wal_only",
-            name: "My Wallet",
-            address: "0x111",
-            isDefault: true,
-          },
-        ],
+        items: [{ id: "wal_only", name: "My Wallet", address: "0x111", isDefault: true }],
       })
-      .mockResolvedValueOnce({
-        result: { status: "success" },
-        durationMs: 500,
-      });
+      .mockResolvedValueOnce({ result: { status: "success" }, durationMs: 500 });
 
     const result = await callTool(server, "b3os_run_action", {
       actionType: "relay-swap",
@@ -110,10 +91,7 @@ describe("b3os_run_action — wallet resolution", () => {
 
   it("returns error when multiple wallets exist and walletId not specified", async () => {
     mockRequest
-      .mockResolvedValueOnce({
-        type: "relay-swap",
-        connector: { type: "wallet" },
-      })
+      .mockResolvedValueOnce({ type: "relay-swap", connector: { type: "wallet" } })
       .mockResolvedValueOnce({ items: [{ id: "org_test1" }] })
       .mockResolvedValueOnce({
         items: [
@@ -133,10 +111,7 @@ describe("b3os_run_action — wallet resolution", () => {
 
   it("returns error when action requires wallet but no wallets found", async () => {
     mockRequest
-      .mockResolvedValueOnce({
-        type: "relay-swap",
-        connector: { type: "wallet" },
-      })
+      .mockResolvedValueOnce({ type: "relay-swap", connector: { type: "wallet" } })
       .mockResolvedValueOnce({ items: [{ id: "org_test1" }] })
       .mockResolvedValueOnce({ items: [] });
 
@@ -195,10 +170,7 @@ describe("b3os_run_action — wallet resolution", () => {
   });
 
   it("prefers walletId over auto-resolve for multi-wallet orgs", async () => {
-    mockRequest.mockResolvedValueOnce({
-      result: { status: "success" },
-      durationMs: 100,
-    });
+    mockRequest.mockResolvedValueOnce({ result: { status: "success" }, durationMs: 100 });
 
     const result = await callTool(server, "b3os_run_action", {
       actionType: "relay-swap",
@@ -223,9 +195,7 @@ describe("b3os_run_action — wallet resolution", () => {
       connectorId: "conn_slack456",
     })) as { content: { text: string }[] };
 
-    expect(result.content[0].text).toContain(
-      "Cannot pass both walletId and connectorId",
-    );
+    expect(result.content[0].text).toContain("Cannot pass both walletId and connectorId");
     expect(mockRequest).not.toHaveBeenCalled();
   });
 });

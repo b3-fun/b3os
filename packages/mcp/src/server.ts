@@ -103,6 +103,11 @@ Use b3os_balance_lookup to see which chains and tokens the wallet holds, then pr
 the options and let the user choose. Never assume defaults for chain or token — the
 user may not have funds on the default chain.
 
+BEFORE HYPERLIQUID PERPS TRADING: Run hyperliquid-get-account (via b3os_run_action) to
+check the user's current leverage setting and open positions. Report it (e.g. "You're at
+10x cross on BTC") and ask if they want to adjust. If they want to switch margin mode
+(cross↔isolated) but have an open position, tell them to close it first.
+
 HOW TO BUILD WORKFLOWS:
 
 ALWAYS use b3os_build_workflow to construct workflows — NEVER manually write workflow
@@ -181,9 +186,10 @@ export function createServer(): McpServer {
   // The MCP spec defines server `instructions` (§ 5.2.1) but the SDK types
   // don't expose it yet. Cast to satisfy the compiler.
   // https://spec.modelcontextprotocol.io/specification/2025-03-26/server/utilities/instructions/
-  const server = new McpServer({ name: "b3os", version: "1.0.0" }, {
-    instructions: INSTRUCTIONS,
-  } as Record<string, unknown>);
+  const server = new McpServer({ name: "b3os", version: "1.0.0" }, { instructions: INSTRUCTIONS } as Record<
+    string,
+    unknown
+  >);
 
   registerOrgTools(server);
   registerConnectorTools(server);
@@ -196,20 +202,15 @@ export function createServer(): McpServer {
   registerTemplateTools(server);
   registerCaddieTools(server);
 
-  server.resource(
-    "guide",
-    GUIDE_URI,
-    { mimeType: "text/markdown" },
-    async () => ({
-      contents: [
-        {
-          uri: GUIDE_URI,
-          mimeType: "text/markdown",
-          text: GUIDE_CONTENT,
-        },
-      ],
-    }),
-  );
+  server.resource("guide", GUIDE_URI, { mimeType: "text/markdown" }, async () => ({
+    contents: [
+      {
+        uri: GUIDE_URI,
+        mimeType: "text/markdown",
+        text: GUIDE_CONTENT,
+      },
+    ],
+  }));
 
   // Must run AFTER all tools are registered so the tools/call request handler exists.
   // Replaces the SDK's dispatcher with one that catches validation failures and

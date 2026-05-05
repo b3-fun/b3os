@@ -84,11 +84,7 @@ describe("getApiKey (async with keystore fallback)", () => {
       },
     }));
     const mod = await import("../client.js");
-    const [r1, r2, r3] = await Promise.all([
-      mod.getApiKey(),
-      mod.getApiKey(),
-      mod.getApiKey(),
-    ]);
+    const [r1, r2, r3] = await Promise.all([mod.getApiKey(), mod.getApiKey(), mod.getApiKey()]);
     expect(callCount).toBe(1);
     expect(r1).toBe("b3sk_concurrent1234567");
     expect(r2).toBe("b3sk_concurrent1234567");

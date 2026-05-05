@@ -42,25 +42,17 @@ export function registerDatabaseTools(s: McpServer): void {
 
 Each org gets one auto-provisioned database. Use this to discover existing tables
 before creating new ones or writing queries. Requires orgId from b3os_whoami.`,
-      inputSchema: {
-        orgId: z.string().describe("Organization ID from b3os_whoami"),
-      },
+      inputSchema: { orgId: z.string().describe("Organization ID from b3os_whoami") },
     },
     async ({ orgId }) => {
       validateOrgId(orgId);
-      const data = await request<{ tables: TableInfo[] }>(
-        `/v1/organizations/${orgId}/database/tables`,
-      );
+      const data = await request<{ tables: TableInfo[] }>(`/v1/organizations/${orgId}/database/tables`);
       const tables = data?.tables || [];
       if (tables.length === 0) {
-        return {
-          content: [
-            { type: "text", text: "No tables found. The database is empty." },
-          ],
-        };
+        return { content: [{ type: "text", text: "No tables found. The database is empty." }] };
       }
       return {
-        content: [{ type: "text", text: tables.map((t) => t.name).join("\n") }],
+        content: [{ type: "text", text: tables.map(t => t.name).join("\n") }],
       };
     },
   );
@@ -110,10 +102,7 @@ Examples:
       inputSchema: {
         orgId: z.string().describe("Organization ID from b3os_whoami"),
         sql: z.string().describe("SQL SELECT statement to execute"),
-        params: z
-          .array(z.any())
-          .optional()
-          .describe("Parameterized query values (for ? placeholders)"),
+        params: z.array(z.any()).optional().describe("Parameterized query values (for ? placeholders)"),
       },
     },
     async ({ orgId, sql, params }) => {
@@ -124,20 +113,16 @@ Examples:
       // get a clear MCP-side message instead of a 403 from the backend
       // permission gate.
       if (!isReadOnlySQL(sql)) {
-        const statementType =
-          sql.trim().split(/\s+/)[0]?.toUpperCase() || "UNKNOWN";
+        const statementType = sql.trim().split(/\s+/)[0]?.toUpperCase() || "UNKNOWN";
         throw new Error(
           `Only SELECT statements are allowed. Got: ${statementType}. The MCP service account has database:read permission only.`,
         );
       }
 
-      const data = await request<QueryResult>(
-        `/v1/organizations/${orgId}/database/query`,
-        {
-          method: "POST",
-          body: { sql, params: params || [] },
-        },
-      );
+      const data = await request<QueryResult>(`/v1/organizations/${orgId}/database/query`, {
+        method: "POST",
+        body: { sql, params: params || [] },
+      });
       const text = JSON.stringify(data, null, 2);
       return { content: [{ type: "text", text: truncateResponse(text) }] };
     },

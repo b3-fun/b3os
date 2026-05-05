@@ -10,10 +10,7 @@ describe("mergeAllowedTools", () => {
   });
 
   it("merges with existing allow list", () => {
-    const { config, added } = mergeAllowedTools(
-      { permissions: { allow: ["x"] } },
-      ["a", "b"],
-    );
+    const { config, added } = mergeAllowedTools({ permissions: { allow: ["x"] } }, ["a", "b"]);
     expect(added).toBe(2);
     const perms = config.permissions as { allow: string[] };
     expect(perms.allow).toEqual(["x", "a", "b"]);
@@ -28,10 +25,7 @@ describe("mergeAllowedTools", () => {
   });
 
   it("preserves other permissions fields", () => {
-    const { config } = mergeAllowedTools(
-      { permissions: { allow: ["x"], deny: ["y"] } },
-      ["a"],
-    );
+    const { config } = mergeAllowedTools({ permissions: { allow: ["x"], deny: ["y"] } }, ["a"]);
     const perms = config.permissions as { allow: string[]; deny: string[] };
     expect(perms.deny).toEqual(["y"]);
     expect(perms.allow).toEqual(["x", "a"]);

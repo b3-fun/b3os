@@ -35,11 +35,7 @@ export interface CaddieDoneEvent {
     cacheCreationInputTokens?: number;
     cacheReadInputTokens?: number;
   };
-  toolUtilization?: Array<{
-    toolName: string;
-    callCount: number;
-    score: number;
-  }>;
+  toolUtilization?: Array<{ toolName: string; callCount: number; score: number }>;
 }
 
 export interface CaddieErrorEvent {
@@ -142,20 +138,17 @@ export async function consumeCaddieStream(
     const text = await response.text();
     const events = parseSseEvents(text);
 
-    const errorEvent = events.find(
-      (e): e is CaddieErrorEvent => e.type === "error",
-    );
+    const errorEvent = events.find((e): e is CaddieErrorEvent => e.type === "error");
     if (errorEvent) {
       throw new Error(`Caddie error: ${errorEvent.error}`);
     }
 
     const doneEvent = events.find(
-      (e): e is CaddieDoneEvent =>
-        e.type === "done" && e.data != null && typeof e.data.type === "string",
+      (e): e is CaddieDoneEvent => e.type === "done" && e.data != null && typeof e.data.type === "string",
     );
     if (!doneEvent) {
       // Check if there's a done event without valid data — distinguishes "no done event" from "malformed done event"
-      const malformedDone = events.find((e) => e.type === "done");
+      const malformedDone = events.find(e => e.type === "done");
       if (malformedDone) {
         throw new Error(
           `Caddie returned a done event without valid data: ${JSON.stringify(malformedDone).slice(0, 500)}`,
@@ -167,9 +160,7 @@ export async function consumeCaddieStream(
     return doneEvent;
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
-      throw new Error(
-        `Caddie request timed out after ${timeoutMs / 1000} seconds`,
-      );
+      throw new Error(`Caddie request timed out after ${timeoutMs / 1000} seconds`);
     }
     throw err;
   } finally {

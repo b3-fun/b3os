@@ -26,28 +26,15 @@ COMMON ACTIONS (no search needed):
 
 For write operations (send tokens, place bets), build a workflow instead.`,
       inputSchema: {
-        actionType: z
-          .string()
-          .describe(
-            "Action type (e.g. 'debug-transaction', 'polymarket-search-markets')",
-          ),
+        actionType: z.string().describe("Action type (e.g. 'debug-transaction', 'polymarket-search-markets')"),
         payload: z
           .any()
-          .describe(
-            "Action payload object. Fields depend on the action — use b3os_get_action to see the schema.",
-          ),
+          .describe("Action payload object. Fields depend on the action — use b3os_get_action to see the schema."),
       },
     },
     async ({ actionType, payload }) => {
       if (!ACTION_TYPE_RE.test(actionType)) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Invalid actionType format: "${actionType}"`,
-            },
-          ],
-        };
+        return { content: [{ type: "text", text: `Invalid actionType format: "${actionType}"` }] };
       }
 
       try {

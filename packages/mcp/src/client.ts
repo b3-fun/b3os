@@ -22,9 +22,7 @@ export async function getApiKey(): Promise<string> {
     try {
       const key = await readApiKey();
       if (!key) {
-        throw new Error(
-          "B3OS_API_KEY not found in env and keystore returned no value. Run: b3os-mcp-setup",
-        );
+        throw new Error("B3OS_API_KEY not found in env and keystore returned no value. Run: b3os-mcp-setup");
       }
       cachedKey = key;
       return key;
@@ -46,14 +44,8 @@ export function clearKeyCache(): void {
 export const __resetKeyCacheForTests = clearKeyCache;
 
 export function getServerUrl(): string {
-  const url = (process.env.B3OS_SERVER_URL || "https://api.b3os.org").replace(
-    /\/+$/,
-    "",
-  );
-  if (
-    !/^https:\/\//i.test(url) &&
-    !/^http:\/\/(localhost|127\.0\.0\.1)(:|$)/.test(url)
-  ) {
+  const url = (process.env.B3OS_SERVER_URL || "https://api.b3os.org").replace(/\/+$/, "");
+  if (!/^https:\/\//i.test(url) && !/^http:\/\/(localhost|127\.0\.0\.1)(:|$)/.test(url)) {
     throw new Error("B3OS_SERVER_URL must use HTTPS (localhost is exempt)");
   }
   return url;
@@ -84,9 +76,7 @@ export class ApiError extends Error {
   ) {
     const hint = friendlyHint(status);
     const cleanBody = sanitizeBody(body);
-    super(
-      `API error ${status}: ${statusText}${hint ? `\nHint: ${hint}` : ""}${cleanBody ? `\n${cleanBody}` : ""}`,
-    );
+    super(`API error ${status}: ${statusText}${hint ? `\nHint: ${hint}` : ""}${cleanBody ? `\n${cleanBody}` : ""}`);
     this.name = "ApiError";
   }
 }
@@ -110,19 +100,14 @@ function buildUrl(path: string, params?: Record<string, string>): string {
 }
 
 async function buildHeaders(noAuth?: boolean): Promise<Record<string, string>> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (!noAuth) {
     headers["Authorization"] = `Bearer ${await getApiKey()}`;
   }
   return headers;
 }
 
-export async function request<T = unknown>(
-  path: string,
-  options: RequestOptions = {},
-): Promise<T> {
+export async function request<T = unknown>(path: string, options: RequestOptions = {}): Promise<T> {
   const url = buildUrl(path, options.params);
   const controller = new AbortController();
   const timeoutMs = options.timeout ?? 30_000;
@@ -161,14 +146,8 @@ export async function request<T = unknown>(
 export const MAX_RESPONSE_BYTES = 50_000;
 
 /** Truncate a tool response string if it exceeds the byte limit. */
-export function truncateResponse(
-  text: string,
-  maxBytes: number = MAX_RESPONSE_BYTES,
-): string {
+export function truncateResponse(text: string, maxBytes: number = MAX_RESPONSE_BYTES): string {
   const buf = Buffer.from(text, "utf8");
   if (buf.length <= maxBytes) return text;
-  return (
-    buf.subarray(0, maxBytes).toString("utf8") +
-    `\n…(truncated, ${buf.length} bytes total)`
-  );
+  return buf.subarray(0, maxBytes).toString("utf8") + `\n…(truncated, ${buf.length} bytes total)`;
 }

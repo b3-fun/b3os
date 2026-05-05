@@ -1,35 +1,19 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import {
-  request,
-  truncateResponse,
-  getApiKey,
-  getServerUrl,
-} from "../client.js";
+import { request, truncateResponse, getApiKey, getServerUrl } from "../client.js";
 import { consumeCaddieStream, type CaddieDoneEvent } from "../sse-client.js";
-import {
-  definitionSchema,
-  validateWorkflowId,
-  validateRunId,
-  auditLog,
-} from "./shared.js";
+import { definitionSchema, validateWorkflowId, validateRunId, auditLog } from "./shared.js";
 import type { Run } from "../types.js";
 import { formatCaddieBlocksForCLI } from "./parse-caddie-blocks.js";
 import { registerToolSafe } from "./register-tool-safe.js";
 
 /** Format a Caddie workflow response with incomplete fields, validation errors, and next steps. */
-function formatWorkflowResponse(
-  done: CaddieDoneEvent,
-  header: string,
-  nextSteps: string,
-): string {
+function formatWorkflowResponse(done: CaddieDoneEvent, header: string, nextSteps: string): string {
   const parts: string[] = [header];
   parts.push(JSON.stringify(done.data.workflow, null, 2));
 
   if (done.data.incompleteFields?.length) {
-    parts.push(
-      `\nIncomplete fields that need user input:\n- ${done.data.incompleteFields.join("\n- ")}`,
-    );
+    parts.push(`\nIncomplete fields that need user input:\n- ${done.data.incompleteFields.join("\n- ")}`);
   }
 
   if (done.data.validationErrors?.length) {
@@ -63,28 +47,16 @@ Otherwise, Caddie creates a new workflow from scratch.
 Returns the workflow definition JSON (ready for b3os_create_workflow or b3os_update_workflow)
 along with any incomplete fields that still need user input and validation errors.`,
       inputSchema: {
-        message: z
-          .string()
-          .describe("Natural language description of what to build or change"),
-        workflowId: z
-          .string()
-          .optional()
-          .describe("Existing workflow ID to modify (e.g. 'wf_abc123')"),
-        definition: definitionSchema
-          .optional()
-          .describe(
-            "Starting definition to modify (alternative to workflowId)",
-          ),
+        message: z.string().describe("Natural language description of what to build or change"),
+        workflowId: z.string().optional().describe("Existing workflow ID to modify (e.g. 'wf_abc123')"),
+        definition: definitionSchema.optional().describe("Starting definition to modify (alternative to workflowId)"),
       },
       aliases: { prompt: "message" },
     },
     async ({ message, workflowId, definition }) => {
       try {
         if (workflowId) validateWorkflowId(workflowId);
-        auditLog(
-          "CADDIE_BUILD",
-          workflowId ? `workflow ${workflowId}` : "new workflow",
-        );
+        auditLog("CADDIE_BUILD", workflowId ? `workflow ${workflowId}` : "new workflow");
 
         const apiKey = await getApiKey();
         const serverUrl = getServerUrl();
@@ -108,21 +80,13 @@ along with any incomplete fields that still need user input and validation error
           content: [
             {
               type: "text",
-              text: formatCaddieBlocksForCLI(
-                done.data.message ||
-                  "Caddie did not return a workflow or message.",
-              ),
+              text: formatCaddieBlocksForCLI(done.data.message || "Caddie did not return a workflow or message."),
             },
           ],
         };
       } catch (err) {
         return {
-          content: [
-            {
-              type: "text",
-              text: `Caddie build failed: ${err instanceof Error ? err.message : err}`,
-            },
-          ],
+          content: [{ type: "text", text: `Caddie build failed: ${err instanceof Error ? err.message : err}` }],
         };
       }
     },
@@ -145,12 +109,7 @@ Caddie receives the full run context (status, timing, execution state per node)
 and provides a diagnosis with actionable next steps.`,
       inputSchema: {
         runId: z.string().describe("Run ID to debug (e.g. 'run_abc123')"),
-        message: z
-          .string()
-          .optional()
-          .describe(
-            "Additional context or specific question about the failure",
-          ),
+        message: z.string().optional().describe("Additional context or specific question about the failure"),
       },
       aliases: { prompt: "message" },
     },
@@ -170,8 +129,7 @@ and provides a diagnosis with actionable next steps.`,
         contextParts.push(`- Workflow Version: ${run.workflowVersion}`);
         if (run.startedAt) contextParts.push(`- Started: ${run.startedAt}`);
         if (run.finishedAt) contextParts.push(`- Finished: ${run.finishedAt}`);
-        if (run.triggerSource)
-          contextParts.push(`- Trigger: ${run.triggerSource}`);
+        if (run.triggerSource) contextParts.push(`- Trigger: ${run.triggerSource}`);
 
         if (run.executionState) {
           // Truncate to avoid blowing Caddie's token budget on large execution states
@@ -208,8 +166,7 @@ and provides a diagnosis with actionable next steps.`,
             {
               type: "text",
               text: formatCaddieBlocksForCLI(
-                done.data.message ||
-                  `Caddie analyzed run ${runId} but did not return a diagnosis.`,
+                done.data.message || `Caddie analyzed run ${runId} but did not return a diagnosis.`,
                 "b3os_debug_run",
               ),
             },
@@ -217,12 +174,7 @@ and provides a diagnosis with actionable next steps.`,
         };
       } catch (err) {
         return {
-          content: [
-            {
-              type: "text",
-              text: `Caddie debug failed: ${err instanceof Error ? err.message : err}`,
-            },
-          ],
+          content: [{ type: "text", text: `Caddie debug failed: ${err instanceof Error ? err.message : err}` }],
         };
       }
     },

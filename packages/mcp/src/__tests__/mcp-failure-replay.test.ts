@@ -3,8 +3,7 @@ import { createServer } from "../server.js";
 
 // Mock the client.request function used by all tools. Every tool call hits this mock.
 vi.mock("../client.js", async () => {
-  const actual =
-    await vi.importActual<typeof import("../client.js")>("../client.js");
+  const actual = await vi.importActual<typeof import("../client.js")>("../client.js");
   return {
     ...actual,
     request: vi.fn(),
@@ -69,14 +68,10 @@ describe("MCP failure replay — transcript regression tests", () => {
 
   it("Failure #3: b3os_validate_workflow with 'workflow' instead of 'definition'", async () => {
     // Transcript error: `expected object, received undefined` for `definition`
-    (clientModule.request as ReturnType<typeof vi.fn>).mockResolvedValue({
-      valid: true,
-    });
+    (clientModule.request as ReturnType<typeof vi.fn>).mockResolvedValue({ valid: true });
 
     const result = await callTool(server, "b3os_validate_workflow", {
-      workflow: {
-        nodes: { root: { type: "manual", payload: {}, children: [] } },
-      },
+      workflow: { nodes: { root: { type: "manual", payload: {}, children: [] } } },
     });
 
     expect((result as { isError?: boolean }).isError).not.toBe(true);
@@ -85,9 +80,7 @@ describe("MCP failure replay — transcript regression tests", () => {
       expect.objectContaining({
         method: "POST",
         body: expect.objectContaining({
-          definition: {
-            nodes: { root: { type: "manual", payload: {}, children: [] } },
-          },
+          definition: { nodes: { root: { type: "manual", payload: {}, children: [] } } },
         }),
       }),
     );
@@ -95,12 +88,9 @@ describe("MCP failure replay — transcript regression tests", () => {
 
   it("Failure #4: b3os_validate_workflow with stringified definition", async () => {
     // Transcript error: `expected object, received string` for `definition`
-    (clientModule.request as ReturnType<typeof vi.fn>).mockResolvedValue({
-      valid: true,
-    });
+    (clientModule.request as ReturnType<typeof vi.fn>).mockResolvedValue({ valid: true });
 
-    const stringifiedDef =
-      '{"nodes":{"root":{"type":"manual","payload":{},"children":[]}}}';
+    const stringifiedDef = '{"nodes":{"root":{"type":"manual","payload":{},"children":[]}}}';
     const result = await callTool(server, "b3os_validate_workflow", {
       definition: stringifiedDef,
     });
@@ -111,9 +101,7 @@ describe("MCP failure replay — transcript regression tests", () => {
       expect.objectContaining({
         method: "POST",
         body: expect.objectContaining({
-          definition: {
-            nodes: { root: { type: "manual", payload: {}, children: [] } },
-          },
+          definition: { nodes: { root: { type: "manual", payload: {}, children: [] } } },
         }),
       }),
     );

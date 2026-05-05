@@ -36,9 +36,7 @@ describe("check-leaks scaffold", () => {
   });
 
   it("redactPreview passes non-secrets through unchanged", () => {
-    expect(
-      redactPreview("internal-urls", "https://example.com/some/path"),
-    ).toBe("https://example.com/some/path");
+    expect(redactPreview("internal-urls", "https://example.com/some/path")).toBe("https://example.com/some/path");
   });
 
   it("redactPreview passes short secrets through unchanged", () => {
@@ -46,9 +44,7 @@ describe("check-leaks scaffold", () => {
   });
 
   it("redactPreview truncates long secrets to 16 chars + horizontal ellipsis", () => {
-    expect(redactPreview("secrets", "b3sk_abcDEF1234567890XYZabc")).toBe(
-      "b3sk_abcDEF12345\u2026",
-    );
+    expect(redactPreview("secrets", "b3sk_abcDEF1234567890XYZabc")).toBe("b3sk_abcDEF12345\u2026");
   });
 });
 
@@ -110,7 +106,7 @@ describe("bucket 1: secrets", () => {
 
     it(`${rule} skips negative case`, () => {
       const findings = scanFileContent("dist/x.js", negative);
-      expect(findings.filter((f) => f.rule === rule)).toEqual([]);
+      expect(findings.filter(f => f.rule === rule)).toEqual([]);
     });
   }
 
@@ -121,9 +117,7 @@ describe("bucket 1: secrets", () => {
       "-----BEGIN OPENSSH PRIVATE KEY-----",
     ]) {
       const findings = scanFileContent("dist/x.js", header);
-      expect(findings.filter((f) => f.rule === "private-key-pem")).toHaveLength(
-        1,
-      );
+      expect(findings.filter(f => f.rule === "private-key-pem")).toHaveLength(1);
     }
   });
 });
@@ -152,8 +146,7 @@ describe("bucket 2: internal URLs", () => {
     },
     {
       rule: "doppler-ref",
-      positive:
-        'const s = "doppler://projects/my-project/configs/prd/api_key";',
+      positive: 'const s = "doppler://projects/my-project/configs/prd/api_key";',
       negative: "// doppler runtime reads from environment",
     },
     {
@@ -176,7 +169,7 @@ describe("bucket 2: internal URLs", () => {
 
     it(`${rule} skips negative case`, () => {
       const findings = scanFileContent("dist/x.js", negative);
-      expect(findings.filter((f) => f.rule === rule)).toEqual([]);
+      expect(findings.filter(f => f.rule === rule)).toEqual([]);
     });
   }
 });
@@ -213,33 +206,22 @@ describe("bucket 3: personal info", () => {
 
     it(`${rule} skips negative case`, () => {
       const findings = scanFileContent("dist/x.js", negative);
-      expect(findings.filter((f) => f.rule === rule)).toEqual([]);
+      expect(findings.filter(f => f.rule === rule)).toEqual([]);
     });
   }
 
   it("windows-home-path also matches raw single-backslash paths", () => {
     // README.md and similar documentation might embed raw Windows paths.
-    const content =
-      "See the example at C:\\Users\\Carol\\Projects\\repo for details.";
+    const content = "See the example at C:\\Users\\Carol\\Projects\\repo for details.";
     const findings = scanFileContent("README.md", content);
-    expect(findings).toContainEqual(
-      expect.objectContaining({ rule: "windows-home-path" }),
-    );
+    expect(findings).toContainEqual(expect.objectContaining({ rule: "windows-home-path" }));
   });
 });
 
 describe("bucket 4a: file-presence rules", () => {
   const cases: Array<{ rule: string; positive: string; negative: string }> = [
-    {
-      rule: "test-file",
-      positive: "dist/foo.test.js",
-      negative: "dist/foo.js",
-    },
-    {
-      rule: "spec-file",
-      positive: "dist/foo.spec.js",
-      negative: "dist/foo.js",
-    },
+    { rule: "test-file", positive: "dist/foo.test.js", negative: "dist/foo.js" },
+    { rule: "spec-file", positive: "dist/foo.spec.js", negative: "dist/foo.js" },
     {
       rule: "tests-dir",
       positive: "dist/__tests__/helpers.js",
@@ -272,7 +254,7 @@ describe("bucket 4a: file-presence rules", () => {
 
     it(`${rule} does not fire on ${negative}`, () => {
       const findings = scanFilePath(negative);
-      expect(findings.filter((f) => f.rule === rule)).toEqual([]);
+      expect(findings.filter(f => f.rule === rule)).toEqual([]);
     });
   }
 });
@@ -280,40 +262,29 @@ describe("bucket 4a: file-presence rules", () => {
 describe("bucket 4b: narrow-scoped text rules", () => {
   it("console-usage fires inside dist/**/*.js", () => {
     const findings = scanFileContent("dist/server.js", "console.log('hi')");
-    expect(findings).toContainEqual(
-      expect.objectContaining({ rule: "console-usage" }),
-    );
+    expect(findings).toContainEqual(expect.objectContaining({ rule: "console-usage" }));
   });
 
   it("console-usage skips dist/**/*.d.ts", () => {
-    const findings = scanFileContent(
-      "dist/server.d.ts",
-      "/** console.log usage */",
-    );
-    expect(findings.filter((f) => f.rule === "console-usage")).toEqual([]);
+    const findings = scanFileContent("dist/server.d.ts", "/** console.log usage */");
+    expect(findings.filter(f => f.rule === "console-usage")).toEqual([]);
   });
 
   it("console-usage skips README.md", () => {
-    const findings = scanFileContent(
-      "README.md",
-      "Use console.log for debugging",
-    );
-    expect(findings.filter((f) => f.rule === "console-usage")).toEqual([]);
+    const findings = scanFileContent("README.md", "Use console.log for debugging");
+    expect(findings.filter(f => f.rule === "console-usage")).toEqual([]);
   });
 
   it("todo-comment fires as a warning", () => {
-    const findings = scanFileContent(
-      "dist/index.js",
-      "// TODO: wire up caching",
-    );
-    const todos = findings.filter((f) => f.rule === "todo-comment");
+    const findings = scanFileContent("dist/index.js", "// TODO: wire up caching");
+    const todos = findings.filter(f => f.rule === "todo-comment");
     expect(todos).toHaveLength(1);
     expect(todos[0].severity).toBe("warning");
   });
 
   it("todo-comment skips README.md", () => {
     const findings = scanFileContent("README.md", "## TODO\n\nAdd examples");
-    expect(findings.filter((f) => f.rule === "todo-comment")).toEqual([]);
+    expect(findings.filter(f => f.rule === "todo-comment")).toEqual([]);
   });
 });
 
@@ -496,25 +467,20 @@ describe("runNpmPackDryRun", () => {
   // dist/ doesn't exist and the spot-check for `dist/index.js` would
   // fail with a confusing assertion error. Skip instead so the failure
   // mode is clearly "dist not built" rather than "scanner bug".
-  const distExists = existsSync(
-    join(__dirname, "..", "..", "dist", "index.js"),
-  );
+  const distExists = existsSync(join(__dirname, "..", "..", "dist", "index.js"));
   const maybeIt = distExists ? it : it.skip;
 
-  maybeIt(
-    "parses the npm pack --dry-run --json output against the real package",
-    () => {
-      const result = runNpmPackDryRun();
-      expect(result.name).toBe("@b3dotfun/b3os-mcp");
-      expect(typeof result.version).toBe("string");
-      expect(Array.isArray(result.files)).toBe(true);
-      expect(result.files.length).toBeGreaterThan(0);
-      // Spot check a few files we know should ship
-      expect(result.files).toContain("dist/index.js");
-      expect(result.files).toContain("README.md");
-      expect(result.bytes).toBeGreaterThan(0);
-    },
-  );
+  maybeIt("parses the npm pack --dry-run --json output against the real package", () => {
+    const result = runNpmPackDryRun();
+    expect(result.name).toBe("@b3dotfun/b3os-mcp");
+    expect(typeof result.version).toBe("string");
+    expect(Array.isArray(result.files)).toBe(true);
+    expect(result.files.length).toBeGreaterThan(0);
+    // Spot check a few files we know should ship
+    expect(result.files).toContain("dist/index.js");
+    expect(result.files).toContain("README.md");
+    expect(result.bytes).toBeGreaterThan(0);
+  });
 });
 
 describe("walkFixtureDir", () => {
@@ -629,11 +595,7 @@ describe("formatJsonReport", () => {
 
 describe("main() integration via --fixture-dir", () => {
   it("clean fixture exits 0 and emits 'No leaks detected'", () => {
-    const result = runMain([
-      "--fixture-dir",
-      join(FIXTURES, "clean"),
-      "--json",
-    ]);
+    const result = runMain(["--fixture-dir", join(FIXTURES, "clean"), "--json"]);
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
     expect(parsed.findings).toEqual([]);
@@ -641,37 +603,19 @@ describe("main() integration via --fixture-dir", () => {
   });
 
   it("leaky fixture exits 1 with error findings", () => {
-    const result = runMain([
-      "--fixture-dir",
-      join(FIXTURES, "leaky"),
-      "--json",
-    ]);
+    const result = runMain(["--fixture-dir", join(FIXTURES, "leaky"), "--json"]);
     expect(result.exitCode).toBe(1);
     const parsed = JSON.parse(result.stdout);
     expect(parsed.counts.errors).toBeGreaterThanOrEqual(2);
-    expect(
-      parsed.findings.some(
-        (f: { rule: string }) => f.rule === "b3os-secret-key",
-      ),
-    ).toBe(true);
-    expect(
-      parsed.findings.some(
-        (f: { rule: string }) => f.rule === "macos-home-path",
-      ),
-    ).toBe(true);
+    expect(parsed.findings.some((f: { rule: string }) => f.rule === "b3os-secret-key")).toBe(true);
+    expect(parsed.findings.some((f: { rule: string }) => f.rule === "macos-home-path")).toBe(true);
     // Secret preview is redacted in JSON output
-    const secret = parsed.findings.find(
-      (f: { rule: string }) => f.rule === "b3os-secret-key",
-    );
+    const secret = parsed.findings.find((f: { rule: string }) => f.rule === "b3os-secret-key");
     expect(secret.textPreview).toMatch(/…$/);
   });
 
   it("warning-only fixture exits 0 with 1 warning", () => {
-    const result = runMain([
-      "--fixture-dir",
-      join(FIXTURES, "warning-only"),
-      "--json",
-    ]);
+    const result = runMain(["--fixture-dir", join(FIXTURES, "warning-only"), "--json"]);
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
     expect(parsed.counts).toEqual({ errors: 0, warnings: 1 });

@@ -3,14 +3,8 @@ import { createServer } from "../server.js";
 
 // Mock client + sse so createServer() doesn't need real credentials.
 vi.mock("../client.js", async () => {
-  const actual =
-    await vi.importActual<typeof import("../client.js")>("../client.js");
-  return {
-    ...actual,
-    request: vi.fn(),
-    getApiKey: vi.fn(() => "k"),
-    getServerUrl: vi.fn(() => "http://t"),
-  };
+  const actual = await vi.importActual<typeof import("../client.js")>("../client.js");
+  return { ...actual, request: vi.fn(), getApiKey: vi.fn(() => "k"), getServerUrl: vi.fn(() => "http://t") };
 });
 
 vi.mock("../sse-client.js", () => ({
@@ -22,10 +16,7 @@ describe("tool schema snapshot", () => {
     const server = createServer();
     const tools = (
       server as unknown as {
-        _registeredTools: Record<
-          string,
-          { description: string; inputSchema: unknown }
-        >;
+        _registeredTools: Record<string, { description: string; inputSchema: unknown }>;
       }
     )._registeredTools;
 
