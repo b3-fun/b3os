@@ -332,6 +332,7 @@ Use named lookup tools for common queries:
 
 **Workflow lifecycle:**
 - **Workflows start in "draft" status** — must call \`b3os_publish_workflow\` to make them live
+- **Fund check on publish** — \`b3os_publish_workflow\` automatically checks wallet balances before publishing. If funds are insufficient, it returns an advisory with the amounts needed and a link to fund wallets. Pass \`skipFundCheck: true\` to bypass.
 - **Connectors must be set up in B3OS UI first** — Slack, Discord, Google Sheets, etc.
 - **On-chain actions require a funded org wallet** with sufficient balance and gas
 

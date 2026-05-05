@@ -10,6 +10,10 @@ import {
   applyClientSideFilter,
 } from "./shared.js";
 import { registerToolSafe } from "./register-tool-safe.js";
+import {
+  analyzeWorkflowFunds,
+  formatFundingAdvisory,
+} from "./analyze-funds.js";
 
 const WEB_APP_URL = "https://b3os.org";
 
@@ -224,18 +228,39 @@ and no longer execute. Always confirm with the user before calling this tool.`,
     {
       description: `Publish a draft workflow to make it live. After creating or updating a workflow,
 it starts in "draft" status. Publishing activates its triggers (schedules, webhooks, etc.)
-so it begins executing automatically.`,
+so it begins executing automatically.
+
+Before publishing, this tool checks whether your wallets have sufficient funds for the
+workflow's on-chain actions. If balances are insufficient, it returns a funding advisory
+instead of publishing. Pass skipFundCheck: true to bypass this check.`,
       inputSchema: {
         workflowId: z.string().describe("Workflow ID to publish"),
         expectedVersion: z
           .number()
           .optional()
           .describe("Expected version (optimistic locking)"),
+        skipFundCheck: z
+          .boolean()
+          .optional()
+          .describe("Skip the pre-publish fund balance check (default: false)"),
       },
     },
-    async ({ workflowId, expectedVersion }) => {
+    async ({ workflowId, expectedVersion, skipFundCheck }) => {
       validateWorkflowId(workflowId);
       auditLog("PUBLISH", `workflow ${workflowId}`);
+
+      if (!skipFundCheck) {
+        try {
+          const fundsData = await analyzeWorkflowFunds(workflowId);
+          const advisory = formatFundingAdvisory(fundsData);
+          if (advisory) {
+            return { content: [{ type: "text", text: advisory }] };
+          }
+        } catch {
+          // Graceful degradation: if fund analysis fails, proceed with publish
+        }
+      }
+
       const body: Record<string, unknown> = {};
       if (expectedVersion !== undefined) body.expectedVersion = expectedVersion;
 

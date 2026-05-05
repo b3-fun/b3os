@@ -136,7 +136,7 @@ exports[`tool schema snapshot > captures the public surface of every registered 
   },
   {
     "name": "b3os_publish_workflow",
-    "signature": "Call signature: { workflowId: string, expectedVersion?: number }",
+    "signature": "Call signature: { workflowId: string, expectedVersion?: number, skipFundCheck?: boolean }",
   },
   {
     "name": "b3os_query_action",
