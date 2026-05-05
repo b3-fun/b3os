@@ -13,7 +13,10 @@ import { registerToolSafe } from "./register-tool-safe.js";
  * 3. Use queryAction(actionType, payload) helper
  */
 
-async function queryAction(actionType: string, payload: Record<string, unknown>): Promise<string> {
+async function queryAction(
+  actionType: string,
+  payload: Record<string, unknown>,
+): Promise<string> {
   const result = await request(`/v1/action-proxy/${actionType}/query`, {
     method: "POST",
     body: { payload },
@@ -42,9 +45,22 @@ EXAMPLES:
 - { coinId: "bitcoin" } → current BTC/USD price
 - { network: "base", address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" } → USDC on Base`,
       inputSchema: {
-        network: z.string().optional().describe('Chain network slug (e.g. "ethereum", "base", "arbitrum-one")'),
-        address: z.string().optional().describe("Token contract address (hex, checksummed or lowercase)"),
-        coinId: z.string().optional().describe('CoinGecko coin ID (e.g. "bitcoin", "ethereum", "uniswap")'),
+        network: z
+          .string()
+          .optional()
+          .describe(
+            'Chain network slug (e.g. "ethereum", "base", "arbitrum-one")',
+          ),
+        address: z
+          .string()
+          .optional()
+          .describe("Token contract address (hex, checksummed or lowercase)"),
+        coinId: z
+          .string()
+          .optional()
+          .describe(
+            'CoinGecko coin ID (e.g. "bitcoin", "ethereum", "uniswap")',
+          ),
       },
     },
     async ({ network, address, coinId }) => {
@@ -58,7 +74,10 @@ EXAMPLES:
         }
 
         if (network && address) {
-          const text = await queryAction("coingecko-get-token-data", { network, address });
+          const text = await queryAction("coingecko-get-token-data", {
+            network,
+            address,
+          });
           return { content: [{ type: "text", text }] };
         }
 
@@ -96,11 +115,17 @@ EXAMPLES:
 - { coinIds: ["bitcoin", "ethereum"] } → BTC and ETH prices in USD
 - { coinIds: ["aave"], vsCurrencies: ["usd", "eur"] } → AAVE in USD and EUR`,
       inputSchema: {
-        coinIds: z.array(z.string()).describe('Array of CoinGecko coin IDs (e.g. ["bitcoin", "ethereum"])'),
+        coinIds: z
+          .array(z.string())
+          .describe(
+            'Array of CoinGecko coin IDs (e.g. ["bitcoin", "ethereum"])',
+          ),
         vsCurrencies: z
           .array(z.string())
           .optional()
-          .describe('Quote currencies (default: ["usd"]). e.g. ["usd", "eur", "btc"]'),
+          .describe(
+            'Quote currencies (default: ["usd"]). e.g. ["usd", "eur", "btc"]',
+          ),
       },
     },
     async ({ coinIds, vsCurrencies }) => {
@@ -145,14 +170,23 @@ EXAMPLES:
 - { address: "0x...", chainIds: [8453], limit: 50 } → top 50 tokens on Base`,
       inputSchema: {
         address: z.string().describe("Wallet address (0x...)"),
-        chainIds: z.array(z.number()).optional().describe("Filter by chain IDs (e.g. [1, 8453])"),
-        limit: z.number().optional().describe("Max tokens to return (default: 20)"),
+        chainIds: z
+          .array(z.number())
+          .optional()
+          .describe("Filter by chain IDs (e.g. [1, 8453])"),
+        limit: z
+          .number()
+          .optional()
+          .describe("Max tokens to return (default: 20)"),
         offset: z.number().optional().describe("Pagination offset"),
       },
     },
     async ({ address, chainIds, limit, offset }) => {
       try {
-        const payload: Record<string, unknown> = { address, limit: limit ?? 20 };
+        const payload: Record<string, unknown> = {
+          address,
+          limit: limit ?? 20,
+        };
         if (chainIds) payload.chainIds = chainIds;
         if (offset !== undefined) payload.offset = offset;
 
@@ -189,7 +223,10 @@ EXAMPLES:
 - { address: "0x...", chainId: 1 } → Ethereum-only DeFi positions`,
       inputSchema: {
         address: z.string().describe("Wallet address (0x...)"),
-        chainId: z.number().optional().describe("Filter to a single chain ID (e.g. 1 for Ethereum)"),
+        chainId: z
+          .number()
+          .optional()
+          .describe("Filter to a single chain ID (e.g. 1 for Ethereum)"),
       },
     },
     async ({ address, chainId }) => {
@@ -238,7 +275,10 @@ EXAMPLES:
     },
     async ({ txHash, chainId }) => {
       try {
-        const text = await queryAction("debug-transaction", { txHash, chainId });
+        const text = await queryAction("debug-transaction", {
+          txHash,
+          chainId,
+        });
         return { content: [{ type: "text", text }] };
       } catch (err) {
         return {
@@ -274,7 +314,10 @@ EXAMPLES:
 - { slug: "will-bitcoin-hit-100k-2025" } → get specific market details
 - { marketUrl: "https://polymarket.com/event/will-bitcoin-hit-100k-2025" } → same, by URL`,
       inputSchema: {
-        query: z.string().optional().describe("Search keyword(s) for finding markets"),
+        query: z
+          .string()
+          .optional()
+          .describe("Search keyword(s) for finding markets"),
         slug: z.string().optional().describe("Market slug (URL path segment)"),
         marketUrl: z.string().optional().describe("Full Polymarket URL"),
       },
@@ -291,7 +334,9 @@ EXAMPLES:
         }
 
         if (query) {
-          const text = await queryAction("polymarket-search-markets", { query });
+          const text = await queryAction("polymarket-search-markets", {
+            query,
+          });
           return { content: [{ type: "text", text }] };
         }
 

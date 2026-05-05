@@ -104,7 +104,8 @@ export const RULES = [
     // .fun, and modern internal infra also uses .app/.xyz/.co/.dev/.cloud.
     // A narrow `com|org|io|net` list (the original) would miss
     // `api.staging.b3.fun` entirely.
-    regex: /\b[a-z0-9-]+\.(?:staging|dev|corp)\.[a-z0-9-]+\.(?:com|org|io|net|fun|app|xyz|co|dev|cloud)\b/g,
+    regex:
+      /\b[a-z0-9-]+\.(?:staging|dev|corp)\.[a-z0-9-]+\.(?:com|org|io|net|fun|app|xyz|co|dev|cloud)\b/g,
     scope: "content",
   },
   {
@@ -140,7 +141,8 @@ export const RULES = [
     id: "internal-monorepo-path",
     bucket: "internal-urls",
     severity: "error",
-    regex: /\b(?:services\/b3os-|apps\/b3os-|internal\/app\/|internal\/pkg\/)\b/g,
+    regex:
+      /\b(?:services\/b3os-|apps\/b3os-|internal\/app\/|internal\/pkg\/)\b/g,
     scope: "content",
   },
   // Personal / developer info.
@@ -247,25 +249,38 @@ export const RULES = [
 // severity, and scope. A typo anywhere in RULES (e.g. severity: "errror")
 // would otherwise cause that rule's findings to be silently dropped during
 // aggregation — fail loud at startup instead.
-const VALID_BUCKETS = new Set(["secrets", "internal-urls", "personal", "artifacts"]);
+const VALID_BUCKETS = new Set([
+  "secrets",
+  "internal-urls",
+  "personal",
+  "artifacts",
+]);
 const VALID_SEVERITIES = new Set(["error", "warning"]);
 const VALID_SCOPES = new Set(["content", "path"]);
 for (const rule of RULES) {
   if (!VALID_BUCKETS.has(rule.bucket)) {
-    throw new Error(`check-leaks: rule '${rule.id}' has unknown bucket '${rule.bucket}'`);
+    throw new Error(
+      `check-leaks: rule '${rule.id}' has unknown bucket '${rule.bucket}'`,
+    );
   }
   if (!VALID_SEVERITIES.has(rule.severity)) {
-    throw new Error(`check-leaks: rule '${rule.id}' has unknown severity '${rule.severity}'`);
+    throw new Error(
+      `check-leaks: rule '${rule.id}' has unknown severity '${rule.severity}'`,
+    );
   }
   if (!VALID_SCOPES.has(rule.scope)) {
-    throw new Error(`check-leaks: rule '${rule.id}' has unknown scope '${rule.scope}'`);
+    throw new Error(
+      `check-leaks: rule '${rule.id}' has unknown scope '${rule.scope}'`,
+    );
   }
 }
 
 // Rule ID sets derived once at module load. Used by validateAllowlist to
 // reject unknown or forbidden rule IDs without rebuilding the sets per call.
-const KNOWN_RULE_IDS = new Set(RULES.map(r => r.id));
-const SECRET_RULE_IDS = new Set(RULES.filter(r => r.bucket === "secrets").map(r => r.id));
+const KNOWN_RULE_IDS = new Set(RULES.map((r) => r.id));
+const SECRET_RULE_IDS = new Set(
+  RULES.filter((r) => r.bucket === "secrets").map((r) => r.id),
+);
 
 export const ALLOWLIST = [
   // Load-bearing loopback references in the OAuth callback server.
@@ -298,7 +313,8 @@ export const ALLOWLIST = [
     rule: "email",
     file: "*",
     match: /@(b3\.fun|b3dotfun\.com|anthropic\.com|noreply\.github\.com)$/,
-    reason: "Official support / vendor / CI domains — not personal email addresses",
+    reason:
+      "Official support / vendor / CI domains — not personal email addresses",
   },
 ];
 
@@ -392,10 +408,14 @@ export function validateAllowlist(allowlist = ALLOWLIST) {
     // it's a secrets rule, so a typo'd secret rule ID can't slip past the
     // secrets guard by virtue of not appearing in SECRET_RULE_IDS.
     if (!KNOWN_RULE_IDS.has(entry.rule)) {
-      throw new Error(`Allowlist entry references unknown rule '${entry.rule}' — check for typos`);
+      throw new Error(
+        `Allowlist entry references unknown rule '${entry.rule}' — check for typos`,
+      );
     }
     if (SECRET_RULE_IDS.has(entry.rule)) {
-      throw new Error(`Allowlist entry for rule '${entry.rule}' is forbidden: secret rules cannot be allowlisted`);
+      throw new Error(
+        `Allowlist entry for rule '${entry.rule}' is forbidden: secret rules cannot be allowlisted`,
+      );
     }
     // Reject /g flag: isAllowlisted uses regex.test() which leaves
     // lastIndex state on global regexes, silently breaking suppression
@@ -461,7 +481,13 @@ export function walkFixtureDir(rootDir) {
 
   walk(rootDir);
   files.sort();
-  return { files, bytes: totalBytes, name: "fixture", version: "0.0.0", rootDir };
+  return {
+    files,
+    bytes: totalBytes,
+    name: "fixture",
+    version: "0.0.0",
+    rootDir,
+  };
 }
 
 /**
@@ -495,7 +521,7 @@ export function runNpmPackDryRun() {
   return {
     name: pkg.name,
     version: pkg.version,
-    files: pkg.files.map(f => f.path),
+    files: pkg.files.map((f) => f.path),
     bytes: pkg.unpackedSize ?? pkg.size ?? 0,
     rootDir,
   };
@@ -522,7 +548,8 @@ function lineNumberFor(lineStarts, index) {
 }
 
 // ANSI color helpers — guarded against non-TTY / NO_COLOR / TERM=dumb.
-const supportsColor = process.stdout.isTTY && !process.env.NO_COLOR && process.env.TERM !== "dumb";
+const supportsColor =
+  process.stdout.isTTY && !process.env.NO_COLOR && process.env.TERM !== "dumb";
 const RED = supportsColor ? "\x1b[31m" : "";
 const GREEN = supportsColor ? "\x1b[32m" : "";
 const YELLOW = supportsColor ? "\x1b[33m" : "";
@@ -545,14 +572,21 @@ function formatBytes(n) {
 }
 
 const FIX_HINTS = {
-  secrets: "Remove the hardcoded credential. Secrets must come from environment variables.",
-  "internal-urls": "Remove or generalize the internal URL. If load-bearing, add an allowlist entry with a reason.",
-  personal: "Replace the personal path/email with a generic placeholder or env-driven value.",
-  artifacts: "Exclude the file from the tarball (fix package.json `files` or use .npmignore).",
+  secrets:
+    "Remove the hardcoded credential. Secrets must come from environment variables.",
+  "internal-urls":
+    "Remove or generalize the internal URL. If load-bearing, add an allowlist entry with a reason.",
+  personal:
+    "Replace the personal path/email with a generic placeholder or env-driven value.",
+  artifacts:
+    "Exclude the file from the tarball (fix package.json `files` or use .npmignore).",
 };
 
 function fixHintFor(bucket) {
-  return FIX_HINTS[bucket] ?? "Review the match and decide whether to remove it or allowlist it.";
+  return (
+    FIX_HINTS[bucket] ??
+    "Review the match and decide whether to remove it or allowlist it."
+  );
 }
 
 /**
@@ -564,7 +598,8 @@ function fixHintFor(bucket) {
  */
 function aggregateFindings(findings) {
   const byBucket = {};
-  for (const bucket of BUCKET_ORDER) byBucket[bucket] = { errors: [], warnings: [] };
+  for (const bucket of BUCKET_ORDER)
+    byBucket[bucket] = { errors: [], warnings: [] };
   let errorCount = 0;
   let warnCount = 0;
   for (const f of findings) {
@@ -609,7 +644,11 @@ export function formatTextReport(findings, meta) {
   for (const bucket of BUCKET_ORDER) {
     const { errors, warnings } = byBucket[bucket];
     const marker =
-      errors.length > 0 ? `${RED}✗${RESET}` : warnings.length > 0 ? `${YELLOW}⚠${RESET}` : `${GREEN}✓${RESET}`;
+      errors.length > 0
+        ? `${RED}✗${RESET}`
+        : warnings.length > 0
+          ? `${YELLOW}⚠${RESET}`
+          : `${GREEN}✓${RESET}`;
     const pad = BUCKET_LABELS[bucket].padEnd(20, " ");
     const summary =
       errors.length > 0
@@ -625,7 +664,7 @@ export function formatTextReport(findings, meta) {
     pushDetailBlock(lines, byBucket[bucket].errors, bucket, {
       color: RED,
       label: "FAIL",
-      trailingLine: f => `Fix: ${fixHintFor(f.bucket)}`,
+      trailingLine: (f) => `Fix: ${fixHintFor(f.bucket)}`,
     });
   }
   for (const bucket of BUCKET_ORDER) {
@@ -640,12 +679,16 @@ export function formatTextReport(findings, meta) {
   if (errorCount === 0) {
     if (warnCount > 0) {
       lines.push(`${GREEN}✓ No hard-fail leaks. Safe to publish.${RESET}`);
-      lines.push(`  ${YELLOW}${pluralize(warnCount, "warning")} (publish proceeds)${RESET}`);
+      lines.push(
+        `  ${YELLOW}${pluralize(warnCount, "warning")} (publish proceeds)${RESET}`,
+      );
     } else {
       lines.push(`${GREEN}✓ No leaks detected. Safe to publish.${RESET}`);
     }
   } else {
-    lines.push(`${RED}✗ ${pluralize(errorCount, "hard-fail finding")}. Publish aborted.${RESET}`);
+    lines.push(
+      `${RED}✗ ${pluralize(errorCount, "hard-fail finding")}. Publish aborted.${RESET}`,
+    );
     lines.push(`  Exit code: 1`);
   }
 
@@ -660,7 +703,7 @@ export function formatJsonReport(findings, meta) {
       version: meta.version,
       tarballFiles: meta.files.length,
       tarballBytes: meta.bytes,
-      findings: findings.map(f => ({
+      findings: findings.map((f) => ({
         bucket: f.bucket,
         rule: f.rule,
         file: f.file,
@@ -734,7 +777,9 @@ export function runMain(argv) {
 
   let meta;
   try {
-    meta = args.fixtureDir ? walkFixtureDir(args.fixtureDir) : runNpmPackDryRun();
+    meta = args.fixtureDir
+      ? walkFixtureDir(args.fixtureDir)
+      : runNpmPackDryRun();
   } catch (err) {
     return fatalError(`failed to enumerate tarball: ${err?.message || err}`);
   }
@@ -757,11 +802,13 @@ export function runMain(argv) {
   }
 
   // Apply allowlist suppression
-  const filtered = findings.filter(f => !isAllowlisted(f));
+  const filtered = findings.filter((f) => !isAllowlisted(f));
 
-  const errorCount = filtered.filter(f => f.severity === "error").length;
+  const errorCount = filtered.filter((f) => f.severity === "error").length;
   const exitCode = errorCount > 0 ? 1 : 0;
-  const report = args.json ? formatJsonReport(filtered, meta) : formatTextReport(filtered, meta);
+  const report = args.json
+    ? formatJsonReport(filtered, meta)
+    : formatTextReport(filtered, meta);
   return { exitCode, stdout: report + "\n", stderr: "" };
 }
 
@@ -779,7 +826,10 @@ function main() {
 function isEntryPoint() {
   if (!process.argv[1]) return false;
   try {
-    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
+    return (
+      realpathSync(fileURLToPath(import.meta.url)) ===
+      realpathSync(process.argv[1])
+    );
   } catch {
     return false;
   }
@@ -789,7 +839,9 @@ if (isEntryPoint()) {
   try {
     main();
   } catch (err) {
-    process.stderr.write(`check-leaks: unexpected error: ${err?.message || err}\n`);
+    process.stderr.write(
+      `check-leaks: unexpected error: ${err?.message || err}\n`,
+    );
     process.exit(2);
   }
 }

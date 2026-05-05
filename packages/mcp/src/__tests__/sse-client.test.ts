@@ -10,7 +10,10 @@ describe("parseSseEvents", () => {
 
     const events = parseSseEvents(raw);
     expect(events).toHaveLength(3);
-    expect(events[0]).toEqual({ type: "thinking", message: "Searching actions..." });
+    expect(events[0]).toEqual({
+      type: "thinking",
+      message: "Searching actions...",
+    });
     expect(events[2].type).toBe("done");
     expect(events[2].data.type).toBe("workflow");
     expect(events[2].data.workflow).toEqual({ nodes: {} });

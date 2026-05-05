@@ -40,11 +40,17 @@ describe("keystore scaffold", () => {
 describe("detectKeystore", () => {
   const originalPlatform = process.platform;
   afterEach(() => {
-    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: originalPlatform,
+      configurable: true,
+    });
   });
 
   function setPlatform(p: string): void {
-    Object.defineProperty(process, "platform", { value: p, configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: p,
+      configurable: true,
+    });
   }
 
   it("returns macos-keychain on darwin", () => {
@@ -71,16 +77,25 @@ describe("detectKeystore", () => {
 describe("plaintext-fallback behavior", () => {
   const originalPlatform = process.platform;
   afterEach(() => {
-    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: originalPlatform,
+      configurable: true,
+    });
   });
 
   it("storeApiKey is a no-op on plaintext-fallback", async () => {
-    Object.defineProperty(process, "platform", { value: "linux", configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: "linux",
+      configurable: true,
+    });
     await expect(storeApiKey("b3sk_whatever")).resolves.toBeUndefined();
   });
 
   it("readApiKey returns null on plaintext-fallback", async () => {
-    Object.defineProperty(process, "platform", { value: "linux", configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: "linux",
+      configurable: true,
+    });
     await expect(readApiKey()).resolves.toBeNull();
   });
 });
@@ -89,11 +104,17 @@ describe("storeMacosKeychain", () => {
   const originalPlatform = process.platform;
 
   function onMacos(): void {
-    Object.defineProperty(process, "platform", { value: "darwin", configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: "darwin",
+      configurable: true,
+    });
   }
 
   afterEach(() => {
-    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: originalPlatform,
+      configurable: true,
+    });
   });
 
   it("calls security add-generic-password with the correct argv", async () => {
@@ -113,7 +134,9 @@ describe("storeMacosKeychain", () => {
     expect(calls[0].args).toContain("-s");
     expect(calls[0].args[calls[0].args.indexOf("-s") + 1]).toBe("b3os-mcp");
     expect(calls[0].args).toContain("-w");
-    expect(calls[0].args[calls[0].args.indexOf("-w") + 1]).toBe("b3sk_abcDEF1234567890");
+    expect(calls[0].args[calls[0].args.indexOf("-w") + 1]).toBe(
+      "b3sk_abcDEF1234567890",
+    );
     expect(calls[0].args).toContain("-a");
     const accountIdx = calls[0].args.indexOf("-a");
     expect(typeof calls[0].args[accountIdx + 1]).toBe("string");
@@ -175,7 +198,9 @@ describe("storeMacosKeychain", () => {
       // Simulate security exiting with code 1 (non-ENOENT). execFileSync
       // synthesizes an Error with status + stderr attached but no `code`
       // property (NodeJS.ErrnoException.code is reserved for spawn failures).
-      const err = new Error("Command failed: security add-generic-password") as Error & {
+      const err = new Error(
+        "Command failed: security add-generic-password",
+      ) as Error & {
         status?: number;
         stderr?: Buffer;
       };
@@ -189,29 +214,40 @@ describe("storeMacosKeychain", () => {
       code: "UNKNOWN",
     });
     // The underlying message should be preserved in the KeystoreError message.
-    await expect(storeApiKey("b3sk_whatever")).rejects.toThrow(/Command failed: security/);
+    await expect(storeApiKey("b3sk_whatever")).rejects.toThrow(
+      /Command failed: security/,
+    );
   });
 });
 
 describe("readMacosKeychain", () => {
   const originalPlatform = process.platform;
   function onMacos(): void {
-    Object.defineProperty(process, "platform", { value: "darwin", configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: "darwin",
+      configurable: true,
+    });
   }
   afterEach(() => {
-    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: originalPlatform,
+      configurable: true,
+    });
   });
 
   it("returns the trimmed key on successful read", async () => {
     onMacos();
-    __setExecFnForTests((() => Buffer.from("b3sk_abcDEF1234567890\n")) as ExecFn);
+    __setExecFnForTests((() =>
+      Buffer.from("b3sk_abcDEF1234567890\n")) as ExecFn);
     await expect(readApiKey()).resolves.toBe("b3sk_abcDEF1234567890");
   });
 
   it("returns null when the item is not found (security exit 44)", async () => {
     onMacos();
     __setExecFnForTests((() => {
-      const err = new Error("security returned 44") as Error & { status?: number };
+      const err = new Error("security returned 44") as Error & {
+        status?: number;
+      };
       err.status = 44;
       throw err;
     }) as ExecFn);
@@ -221,9 +257,14 @@ describe("readMacosKeychain", () => {
   it("throws KeystoreError({ code: ACCESS_DENIED }) on 'User interaction is not allowed'", async () => {
     onMacos();
     __setExecFnForTests((() => {
-      const err = new Error("read failed") as Error & { status?: number; stderr?: Buffer };
+      const err = new Error("read failed") as Error & {
+        status?: number;
+        stderr?: Buffer;
+      };
       err.status = 51;
-      err.stderr = Buffer.from("security: SecKeychainSearchCopyNext: User interaction is not allowed.\n");
+      err.stderr = Buffer.from(
+        "security: SecKeychainSearchCopyNext: User interaction is not allowed.\n",
+      );
       throw err;
     }) as ExecFn);
     await expect(readApiKey()).rejects.toMatchObject({
@@ -235,7 +276,10 @@ describe("readMacosKeychain", () => {
   it("throws KeystoreError({ code: ACCESS_DENIED }) on 'could not be decrypted'", async () => {
     onMacos();
     __setExecFnForTests((() => {
-      const err = new Error("read failed") as Error & { status?: number; stderr?: Buffer };
+      const err = new Error("read failed") as Error & {
+        status?: number;
+        stderr?: Buffer;
+      };
       err.status = 51;
       err.stderr = Buffer.from("security: The item could not be decrypted\n");
       throw err;
@@ -262,7 +306,10 @@ describe("readMacosKeychain", () => {
   it("throws KeystoreError({ code: UNKNOWN }) for other non-zero exits", async () => {
     onMacos();
     __setExecFnForTests((() => {
-      const err = new Error("read failed") as Error & { status?: number; stderr?: Buffer };
+      const err = new Error("read failed") as Error & {
+        status?: number;
+        stderr?: Buffer;
+      };
       err.status = 1;
       err.stderr = Buffer.from("some other failure\n");
       throw err;
@@ -277,18 +324,34 @@ describe("readMacosKeychain", () => {
 describe("storeWindowsDpapi", () => {
   const originalPlatform = process.platform;
   function onWindows(): void {
-    Object.defineProperty(process, "platform", { value: "win32", configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: "win32",
+      configurable: true,
+    });
   }
   afterEach(() => {
-    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: originalPlatform,
+      configurable: true,
+    });
   });
 
   it("calls powershell.exe with -NoProfile -Command and pipes key via input", async () => {
     onWindows();
-    const calls: Array<{ file: string; args: readonly string[]; input: unknown }> = [];
-    __setExecFnForTests(((file: string, args: readonly string[], options?: { input?: unknown }) => {
+    const calls: Array<{
+      file: string;
+      args: readonly string[];
+      input: unknown;
+    }> = [];
+    __setExecFnForTests(((
+      file: string,
+      args: readonly string[],
+      options?: { input?: unknown },
+    ) => {
       calls.push({ file, args, input: options?.input });
-      return Buffer.from("01000000d08c9ddf0115d1118c7a00c04fc297eb0100000000000000");
+      return Buffer.from(
+        "01000000d08c9ddf0115d1118c7a00c04fc297eb0100000000000000",
+      );
     }) as ExecFn);
 
     // Stub fs side-effects so the test doesn't actually create ~/.b3os/
@@ -321,7 +384,9 @@ describe("storeWindowsDpapi", () => {
     const writeCall = writeCalls[0];
     expect(typeof writeCall[0]).toBe("string");
     expect(writeCall[0] as string).toMatch(/\.b3os[\\/]b3os-mcp-key\.dpapi$/);
-    expect(writeCall[1]).toBe("01000000d08c9ddf0115d1118c7a00c04fc297eb0100000000000000");
+    expect(writeCall[1]).toBe(
+      "01000000d08c9ddf0115d1118c7a00c04fc297eb0100000000000000",
+    );
     expect((writeCall[2] as { mode?: number }).mode).toBe(0o600);
 
     // The parent directory is created with mode 0o700
@@ -332,7 +397,9 @@ describe("storeWindowsDpapi", () => {
   it("throws KeystoreError({ code: TOOL_MISSING }) when powershell.exe is missing", async () => {
     onWindows();
     __setExecFnForTests((() => {
-      const err = new Error("spawn powershell.exe ENOENT") as NodeJS.ErrnoException;
+      const err = new Error(
+        "spawn powershell.exe ENOENT",
+      ) as NodeJS.ErrnoException;
       err.code = "ENOENT";
       throw err;
     }) as ExecFn);
@@ -347,10 +414,16 @@ describe("storeWindowsDpapi", () => {
 describe("readWindowsDpapi", () => {
   const originalPlatform = process.platform;
   function onWindows(): void {
-    Object.defineProperty(process, "platform", { value: "win32", configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: "win32",
+      configurable: true,
+    });
   }
   afterEach(() => {
-    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: originalPlatform,
+      configurable: true,
+    });
   });
 
   it("returns null when the DPAPI file does not exist (no PowerShell call)", async () => {
@@ -365,7 +438,9 @@ describe("readWindowsDpapi", () => {
     // ENOENT instead of using existsSync (TOCTOU-safe).
     __setFsFnsForTests({
       readFileSync: () => {
-        throw Object.assign(new Error("ENOENT: no such file or directory"), { code: "ENOENT" });
+        throw Object.assign(new Error("ENOENT: no such file or directory"), {
+          code: "ENOENT",
+        });
       },
     });
 
@@ -378,7 +453,8 @@ describe("readWindowsDpapi", () => {
     __setFsFnsForTests({
       readFileSync: () => "01000000d08c9ddf" as unknown as Buffer,
     });
-    __setExecFnForTests((() => Buffer.from("b3sk_abcDEF1234567890\n")) as ExecFn);
+    __setExecFnForTests((() =>
+      Buffer.from("b3sk_abcDEF1234567890\n")) as ExecFn);
 
     await expect(readApiKey()).resolves.toBe("b3sk_abcDEF1234567890");
   });
@@ -389,7 +465,9 @@ describe("readWindowsDpapi", () => {
       readFileSync: () => "deadbeef" as unknown as Buffer,
     });
     __setExecFnForTests((() => {
-      const err = new Error("powershell failed") as NodeJS.ErrnoException & { stderr?: Buffer };
+      const err = new Error("powershell failed") as NodeJS.ErrnoException & {
+        stderr?: Buffer;
+      };
       err.stderr = Buffer.from(
         "ConvertTo-SecureString : Key not valid for use in specified state.\nSystem.Security.Cryptography.CryptographicException\n",
       );
@@ -408,7 +486,9 @@ describe("readWindowsDpapi", () => {
       readFileSync: () => "deadbeef" as unknown as Buffer,
     });
     __setExecFnForTests((() => {
-      const err = new Error("spawn powershell.exe ENOENT") as NodeJS.ErrnoException;
+      const err = new Error(
+        "spawn powershell.exe ENOENT",
+      ) as NodeJS.ErrnoException;
       err.code = "ENOENT";
       throw err;
     }) as ExecFn);
@@ -423,10 +503,16 @@ describe("readWindowsDpapi", () => {
 describe("deleteMacosKeychain", () => {
   const originalPlatform = process.platform;
   function onMacos(): void {
-    Object.defineProperty(process, "platform", { value: "darwin", configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: "darwin",
+      configurable: true,
+    });
   }
   afterEach(() => {
-    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: originalPlatform,
+      configurable: true,
+    });
   });
 
   it("calls security delete-generic-password and returns true on success", async () => {
@@ -450,7 +536,9 @@ describe("deleteMacosKeychain", () => {
   it("returns false when item not found (security exit 44)", async () => {
     onMacos();
     __setExecFnForTests((() => {
-      const err = new Error("security returned 44") as Error & { status?: number };
+      const err = new Error("security returned 44") as Error & {
+        status?: number;
+      };
       err.status = 44;
       throw err;
     }) as ExecFn);
@@ -475,7 +563,9 @@ describe("deleteMacosKeychain", () => {
   it("throws KeystoreError({ code: UNKNOWN }) for other failures", async () => {
     onMacos();
     __setExecFnForTests((() => {
-      const err = new Error("Command failed: security delete-generic-password") as Error & { status?: number };
+      const err = new Error(
+        "Command failed: security delete-generic-password",
+      ) as Error & { status?: number };
       err.status = 1;
       throw err;
     }) as ExecFn);
@@ -490,10 +580,16 @@ describe("deleteMacosKeychain", () => {
 describe("deleteWindowsDpapi", () => {
   const originalPlatform = process.platform;
   function onWindows(): void {
-    Object.defineProperty(process, "platform", { value: "win32", configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: "win32",
+      configurable: true,
+    });
   }
   afterEach(() => {
-    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: originalPlatform,
+      configurable: true,
+    });
   });
 
   it("returns false when DPAPI file does not exist", async () => {
@@ -510,57 +606,70 @@ describe("deleteWindowsDpapi", () => {
 describe("deleteApiKey plaintext-fallback", () => {
   const originalPlatform = process.platform;
   afterEach(() => {
-    Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: originalPlatform,
+      configurable: true,
+    });
   });
 
   it("returns false on plaintext-fallback (nothing to delete)", async () => {
-    Object.defineProperty(process, "platform", { value: "linux", configurable: true });
+    Object.defineProperty(process, "platform", {
+      value: "linux",
+      configurable: true,
+    });
     await expect(deleteApiKey()).resolves.toBe(false);
   });
 });
 
-describe.skipIf(!process.env.B3OS_MCP_REAL_KEYCHAIN_TEST || process.platform !== "darwin")(
-  "keystore integration (real macOS Keychain, opt-in)",
-  () => {
-    const testService = `b3os-mcp-TEST-${randomUUID()}`;
-    const testKey = `b3sk_test_${randomUUID().replace(/-/g, "")}`;
+describe.skipIf(
+  !process.env.B3OS_MCP_REAL_KEYCHAIN_TEST || process.platform !== "darwin",
+)("keystore integration (real macOS Keychain, opt-in)", () => {
+  const testService = `b3os-mcp-TEST-${randomUUID()}`;
+  const testKey = `b3sk_test_${randomUUID().replace(/-/g, "")}`;
 
-    afterEach(() => {
-      try {
-        realExecFileSync("security", ["delete-generic-password", "-s", testService], {
-          stdio: ["ignore", "ignore", "ignore"],
-        });
-      } catch {
-        // Entry may not exist — that's fine.
-      }
-    });
-
-    it("round-trips a key through the real keychain", () => {
-      const account = userInfo().username;
+  afterEach(() => {
+    try {
       realExecFileSync(
         "security",
-        [
-          "add-generic-password",
-          "-U",
-          "-a",
-          account,
-          "-s",
-          testService,
-          "-w",
-          testKey,
-          "-D",
-          "b3os-mcp TEST entry",
-          "-j",
-          "Integration test — safe to delete",
-        ],
-        { stdio: ["ignore", "pipe", "pipe"] },
+        ["delete-generic-password", "-s", testService],
+        {
+          stdio: ["ignore", "ignore", "ignore"],
+        },
       );
+    } catch {
+      // Entry may not exist — that's fine.
+    }
+  });
 
-      const out = realExecFileSync("security", ["find-generic-password", "-a", account, "-s", testService, "-w"], {
+  it("round-trips a key through the real keychain", () => {
+    const account = userInfo().username;
+    realExecFileSync(
+      "security",
+      [
+        "add-generic-password",
+        "-U",
+        "-a",
+        account,
+        "-s",
+        testService,
+        "-w",
+        testKey,
+        "-D",
+        "b3os-mcp TEST entry",
+        "-j",
+        "Integration test — safe to delete",
+      ],
+      { stdio: ["ignore", "pipe", "pipe"] },
+    );
+
+    const out = realExecFileSync(
+      "security",
+      ["find-generic-password", "-a", account, "-s", testService, "-w"],
+      {
         encoding: "utf-8",
         stdio: ["ignore", "pipe", "pipe"],
-      });
-      expect(out.trim()).toBe(testKey);
-    });
-  },
-);
+      },
+    );
+    expect(out.trim()).toBe(testKey);
+  });
+});

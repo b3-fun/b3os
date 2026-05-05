@@ -1,5 +1,10 @@
 import type { ZodTypeAny, ZodError } from "zod";
-import { serializeShape, serializeZodType, isOptionalField, unwrapOptional } from "./schema-serializer.js";
+import {
+  serializeShape,
+  serializeZodType,
+  isOptionalField,
+  unwrapOptional,
+} from "./schema-serializer.js";
 
 /**
  * Classic Levenshtein distance with 2 rolling rows for O(min(a,b)) space.
@@ -48,7 +53,9 @@ function placeholderValue(schema: ZodTypeAny): unknown {
  * Build a minimal valid example object using the required fields in the shape.
  * @internal Exported only for direct unit testing from hint-formatter.test.ts.
  */
-export function synthesizeExample(shape: Record<string, ZodTypeAny>): Record<string, unknown> {
+export function synthesizeExample(
+  shape: Record<string, ZodTypeAny>,
+): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [key, field] of Object.entries(shape)) {
     if (isOptionalField(field)) continue;
@@ -73,16 +80,22 @@ export function formatHint(input: FormatHintInput): string {
   lines.push(`Invalid arguments for \`${toolName}\`.`);
   lines.push("");
 
-  const rawKeys = rawArgs && typeof rawArgs === "object" ? Object.keys(rawArgs as Record<string, unknown>) : [];
+  const rawKeys =
+    rawArgs && typeof rawArgs === "object"
+      ? Object.keys(rawArgs as Record<string, unknown>)
+      : [];
   const validKeySet = new Set(validKeys);
-  const unknownKeys = rawKeys.filter(k => !validKeySet.has(k));
+  const unknownKeys = rawKeys.filter((k) => !validKeySet.has(k));
 
   for (const bad of unknownKeys) {
     let bestV = "";
     let bestD = Infinity;
     const threshold = Math.max(3, Math.floor(Math.max(bad.length, 0) / 2));
     for (const v of validKeys) {
-      const perKeyThreshold = Math.max(threshold, Math.max(3, Math.floor(v.length / 2)));
+      const perKeyThreshold = Math.max(
+        threshold,
+        Math.max(3, Math.floor(v.length / 2)),
+      );
       const d = levenshtein(bad, v);
       if (d < bestD && d <= perKeyThreshold) {
         bestV = v;
@@ -93,7 +106,9 @@ export function formatHint(input: FormatHintInput): string {
       lines.push(`Problem: Unknown parameter \`${bad}\`.`);
       lines.push(`Did you mean: \`${bestV}\`? (Levenshtein distance ${bestD})`);
     } else {
-      lines.push(`Problem: Unknown parameter \`${bad}\`. No close match in the schema.`);
+      lines.push(
+        `Problem: Unknown parameter \`${bad}\`. No close match in the schema.`,
+      );
     }
   }
 
@@ -110,20 +125,31 @@ export function formatHint(input: FormatHintInput): string {
         // only other signal).
         const isShallow = issue.path.length === 1;
         const rawKey = isShallow ? (issue.path[0] as string) : null;
-        const rawIsObject = rawArgs && typeof rawArgs === "object" && !Array.isArray(rawArgs);
-        const isMissingShallow = isShallow && rawIsObject && rawKey !== null && !(rawKey in (rawArgs as object));
+        const rawIsObject =
+          rawArgs && typeof rawArgs === "object" && !Array.isArray(rawArgs);
+        const isMissingShallow =
+          isShallow &&
+          rawIsObject &&
+          rawKey !== null &&
+          !(rawKey in (rawArgs as object));
         const msg =
-          typeof (issue as { message?: string }).message === "string" ? (issue as { message: string }).message : "";
-        const isMissingNested = !isShallow && msg.includes("received undefined");
+          typeof (issue as { message?: string }).message === "string"
+            ? (issue as { message: string }).message
+            : "";
+        const isMissingNested =
+          !isShallow && msg.includes("received undefined");
 
         if (isMissingShallow || isMissingNested) {
           lines.push(`Problem: Missing required parameter \`${path}\`.`);
         } else {
-          const expected = (issue as { expected?: string }).expected ?? "unknown";
+          const expected =
+            (issue as { expected?: string }).expected ?? "unknown";
           // zod v4 has no structured `received` field for invalid_type; extract from the message.
           const receivedMatch = msg.match(/received (\w+)/);
           const received = receivedMatch ? receivedMatch[1] : "unknown";
-          lines.push(`Problem: Wrong type for \`${path}\`: expected ${expected}, got ${received}.`);
+          lines.push(
+            `Problem: Wrong type for \`${path}\`: expected ${expected}, got ${received}.`,
+          );
         }
       } else if (issue.code === "unrecognized_keys") {
         // already handled above via unknownKeys

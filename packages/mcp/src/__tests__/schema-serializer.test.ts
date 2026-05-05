@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { serializeShape, serializeZodType } from "../tools/schema-serializer.js";
+import {
+  serializeShape,
+  serializeZodType,
+} from "../tools/schema-serializer.js";
 
 describe("serializeZodType", () => {
   it("serializes primitive types", () => {
@@ -12,11 +15,15 @@ describe("serializeZodType", () => {
   it("serializes objects and arrays generically", () => {
     expect(serializeZodType(z.object({ a: z.string() }))).toBe("object");
     expect(serializeZodType(z.array(z.string()))).toBe("string[]");
-    expect(serializeZodType(z.array(z.object({}))).replace(/\s+/g, "")).toBe("object[]");
+    expect(serializeZodType(z.array(z.object({}))).replace(/\s+/g, "")).toBe(
+      "object[]",
+    );
   });
 
   it("serializes enums as literal unions", () => {
-    expect(serializeZodType(z.enum(["draft", "active", "paused"]))).toBe('"draft"|"active"|"paused"');
+    expect(serializeZodType(z.enum(["draft", "active", "paused"]))).toBe(
+      '"draft"|"active"|"paused"',
+    );
   });
 
   it("serializes literal", () => {
@@ -35,7 +42,9 @@ describe("serializeShape", () => {
       workflowId: z.string().optional(),
       definition: z.object({ nodes: z.record(z.string(), z.any()) }).optional(),
     };
-    expect(serializeShape(shape)).toBe("{ message: string, workflowId?: string, definition?: object }");
+    expect(serializeShape(shape)).toBe(
+      "{ message: string, workflowId?: string, definition?: object }",
+    );
   });
 
   it("handles an empty shape", () => {

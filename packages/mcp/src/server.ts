@@ -186,10 +186,9 @@ export function createServer(): McpServer {
   // The MCP spec defines server `instructions` (§ 5.2.1) but the SDK types
   // don't expose it yet. Cast to satisfy the compiler.
   // https://spec.modelcontextprotocol.io/specification/2025-03-26/server/utilities/instructions/
-  const server = new McpServer({ name: "b3os", version: "1.0.0" }, { instructions: INSTRUCTIONS } as Record<
-    string,
-    unknown
-  >);
+  const server = new McpServer({ name: "b3os", version: "1.0.0" }, {
+    instructions: INSTRUCTIONS,
+  } as Record<string, unknown>);
 
   registerOrgTools(server);
   registerConnectorTools(server);
@@ -202,15 +201,20 @@ export function createServer(): McpServer {
   registerTemplateTools(server);
   registerCaddieTools(server);
 
-  server.resource("guide", GUIDE_URI, { mimeType: "text/markdown" }, async () => ({
-    contents: [
-      {
-        uri: GUIDE_URI,
-        mimeType: "text/markdown",
-        text: GUIDE_CONTENT,
-      },
-    ],
-  }));
+  server.resource(
+    "guide",
+    GUIDE_URI,
+    { mimeType: "text/markdown" },
+    async () => ({
+      contents: [
+        {
+          uri: GUIDE_URI,
+          mimeType: "text/markdown",
+          text: GUIDE_CONTENT,
+        },
+      ],
+    }),
+  );
 
   // Must run AFTER all tools are registered so the tools/call request handler exists.
   // Replaces the SDK's dispatcher with one that catches validation failures and

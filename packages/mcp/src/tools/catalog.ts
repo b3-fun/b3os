@@ -1,7 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { request, truncateResponse } from "../client.js";
-import type { ActionDefinition, LogicAction, TriggerDefinition, SearchResults } from "../types.js";
+import type {
+  ActionDefinition,
+  LogicAction,
+  TriggerDefinition,
+  SearchResults,
+} from "../types.js";
 import { ACTION_TYPE_RE } from "./shared.js";
 import { registerToolSafe } from "./register-tool-safe.js";
 
@@ -15,21 +20,31 @@ workflow nodes. Filter by tags (e.g. "defi", "social", "data").
 
 For keyword search, use b3os_search_actions instead — it's faster and more relevant.`,
       inputSchema: {
-        tags: z.string().optional().describe("Filter by tags (comma-separated)"),
+        tags: z
+          .string()
+          .optional()
+          .describe("Filter by tags (comma-separated)"),
         limit: z
           .number()
           .optional()
-          .describe("Max actions to return (default: 50). Use b3os_search_actions for targeted results."),
+          .describe(
+            "Max actions to return (default: 50). Use b3os_search_actions for targeted results.",
+          ),
       },
     },
     async ({ tags, limit }) => {
       const params: Record<string, string> = { summary: "true" };
       if (tags) params.tags = tags;
-      const actions = await request<ActionDefinition[]>("/v1/actions", { params, noAuth: true });
+      const actions = await request<ActionDefinition[]>("/v1/actions", {
+        params,
+        noAuth: true,
+      });
       const allActions = actions || [];
       const safeLimit = limit ?? 50;
       const truncated = allActions.length > safeLimit;
-      const items = (truncated ? allActions.slice(0, safeLimit) : allActions).map(a => ({
+      const items = (
+        truncated ? allActions.slice(0, safeLimit) : allActions
+      ).map((a) => ({
         type: a.type,
         name: a.name,
         description: a.description,
@@ -65,7 +80,10 @@ b3os_get_action to get the full payload/result schemas for the actions you choos
 
 Examples: "send slack message", "swap tokens", "fetch token price", "google sheets"`,
       inputSchema: {
-        query: z.string().min(1).describe("Search query (e.g. 'send slack message', 'token price')"),
+        query: z
+          .string()
+          .min(1)
+          .describe("Search query (e.g. 'send slack message', 'token price')"),
         limit: z.number().optional().describe("Max results (default: 10)"),
       },
     },
@@ -86,7 +104,7 @@ Examples: "send slack message", "swap tokens", "fetch token price", "google shee
               text:
                 hits.length > 0
                   ? JSON.stringify(
-                      hits.map(h => ({
+                      hits.map((h) => ({
                         type: h.id,
                         name: h.name,
                         description: h.description,
@@ -123,15 +141,32 @@ and result schema (output fields). Use the 'type' field from search results
 
 Read the payload schema to understand what fields to set in the node's payload,
 and the result schema to understand what data flows to downstream nodes.`,
-      inputSchema: { type: z.string().describe("Action type identifier (e.g. 'coingecko-get-token-price')") },
+      inputSchema: {
+        type: z
+          .string()
+          .describe(
+            "Action type identifier (e.g. 'coingecko-get-token-price')",
+          ),
+      },
     },
     async ({ type }) => {
       if (!ACTION_TYPE_RE.test(type)) {
-        throw new Error(`Invalid action type format: "${type}". Use b3os_search_actions to find valid types.`);
+        throw new Error(
+          `Invalid action type format: "${type}". Use b3os_search_actions to find valid types.`,
+        );
       }
-      const action = await request<ActionDefinition>(`/v1/actions/${type}`, { noAuth: true });
+      const action = await request<ActionDefinition>(`/v1/actions/${type}`, {
+        noAuth: true,
+      });
       if (!action) throw new Error(`Action "${type}" not found`);
-      return { content: [{ type: "text", text: truncateResponse(JSON.stringify(action, null, 2)) }] };
+      return {
+        content: [
+          {
+            type: "text",
+            text: truncateResponse(JSON.stringify(action, null, 2)),
+          },
+        ],
+      };
     },
   );
 
@@ -141,18 +176,26 @@ and the result schema to understand what data flows to downstream nodes.`,
     {
       description: `Browse available trigger types. Triggers start workflow execution — schedules (cron),
 webhooks, blockchain events, manual triggers, etc. Filter by tags.`,
-      inputSchema: { tags: z.string().optional().describe("Filter by tags (comma-separated)") },
+      inputSchema: {
+        tags: z
+          .string()
+          .optional()
+          .describe("Filter by tags (comma-separated)"),
+      },
     },
     async ({ tags }) => {
       const params: Record<string, string> = { summary: "true" };
       if (tags) params.tags = tags;
-      const triggers = await request<TriggerDefinition[]>("/v1/triggers", { params, noAuth: true });
+      const triggers = await request<TriggerDefinition[]>("/v1/triggers", {
+        params,
+        noAuth: true,
+      });
       return {
         content: [
           {
             type: "text",
             text: JSON.stringify(
-              (triggers || []).map(t => ({
+              (triggers || []).map((t) => ({
                 type: t.type,
                 name: t.name,
                 description: t.description,
@@ -174,15 +217,28 @@ webhooks, blockchain events, manual triggers, etc. Filter by tags.`,
     {
       description: `Get full details of a specific trigger type, including its payload schema.
 Use the 'type' field from b3os_list_triggers (e.g. "cronjob", "webhook").`,
-      inputSchema: { type: z.string().describe("Trigger type identifier (e.g. 'cronjob')") },
+      inputSchema: {
+        type: z.string().describe("Trigger type identifier (e.g. 'cronjob')"),
+      },
     },
     async ({ type }) => {
       if (!ACTION_TYPE_RE.test(type)) {
-        throw new Error(`Invalid trigger type format: "${type}". Use b3os_list_triggers to browse valid types.`);
+        throw new Error(
+          `Invalid trigger type format: "${type}". Use b3os_list_triggers to browse valid types.`,
+        );
       }
-      const trigger = await request<TriggerDefinition>(`/v1/triggers/${type}`, { noAuth: true });
+      const trigger = await request<TriggerDefinition>(`/v1/triggers/${type}`, {
+        noAuth: true,
+      });
       if (!trigger) throw new Error(`Trigger "${type}" not found`);
-      return { content: [{ type: "text", text: truncateResponse(JSON.stringify(trigger, null, 2)) }] };
+      return {
+        content: [
+          {
+            type: "text",
+            text: truncateResponse(JSON.stringify(trigger, null, 2)),
+          },
+        ],
+      };
     },
   );
 
@@ -198,14 +254,16 @@ Use these to build conditional or iterative workflows.`,
       inputSchema: {},
     },
     async () => {
-      const actions = await request<LogicAction[]>("/v1/logic-actions", { noAuth: true });
+      const actions = await request<LogicAction[]>("/v1/logic-actions", {
+        noAuth: true,
+      });
       return {
         content: [
           {
             type: "text",
             text: truncateResponse(
               JSON.stringify(
-                (actions || []).map(a => ({
+                (actions || []).map((a) => ({
                   type: a.type,
                   name: a.name,
                   description: a.description,
@@ -228,28 +286,50 @@ Use these to build conditional or iterative workflows.`,
 result showing what data the trigger would produce. Useful for verifying trigger
 payloads before wiring them into a workflow definition.`,
       inputSchema: {
-        type: z.string().describe("Trigger type identifier (e.g. 'cronjob', 'webhook', 'erc20-transfer')"),
-        payload: z.any().optional().describe("Trigger configuration payload to test"),
-        connectorId: z.string().optional().describe("Connector ID if the trigger requires one"),
+        type: z
+          .string()
+          .describe(
+            "Trigger type identifier (e.g. 'cronjob', 'webhook', 'erc20-transfer')",
+          ),
+        payload: z
+          .any()
+          .optional()
+          .describe("Trigger configuration payload to test"),
+        connectorId: z
+          .string()
+          .optional()
+          .describe("Connector ID if the trigger requires one"),
         connectorType: z
           .string()
           .optional()
-          .describe("Connector type (e.g. 'wallet', 'slack', 'telegram-bot'). Required when connectorId is provided."),
+          .describe(
+            "Connector type (e.g. 'wallet', 'slack', 'telegram-bot'). Required when connectorId is provided.",
+          ),
       },
     },
     async ({ type, payload, connectorId, connectorType }) => {
       if (!ACTION_TYPE_RE.test(type)) {
-        throw new Error(`Invalid trigger type format: "${type}". Use b3os_list_triggers to browse valid types.`);
+        throw new Error(
+          `Invalid trigger type format: "${type}". Use b3os_list_triggers to browse valid types.`,
+        );
       }
       const body: Record<string, unknown> = { inputs: payload ?? {} };
-      if (connectorId) body.connector = { id: connectorId, type: connectorType ?? "wallet" };
+      if (connectorId)
+        body.connector = { id: connectorId, type: connectorType ?? "wallet" };
 
       const result = await request(`/v1/triggers/${type}/test`, {
         method: "POST",
         body,
         timeout: 35_000,
       });
-      return { content: [{ type: "text", text: truncateResponse(JSON.stringify(result, null, 2)) }] };
+      return {
+        content: [
+          {
+            type: "text",
+            text: truncateResponse(JSON.stringify(result, null, 2)),
+          },
+        ],
+      };
     },
   );
 }

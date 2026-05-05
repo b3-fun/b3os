@@ -26,8 +26,10 @@ inspiration. Filter by category.`,
       };
       if (category) params.category = category;
 
-      const data = await request<PaginatedData<Template>>("/v1/templates", { params });
-      const templates = (data?.items || []).map(t => ({
+      const data = await request<PaginatedData<Template>>("/v1/templates", {
+        params,
+      });
+      const templates = (data?.items || []).map((t) => ({
         id: t.id,
         name: t.name,
         description: t.description,
@@ -40,7 +42,13 @@ inspiration. Filter by category.`,
         content: [
           {
             type: "text",
-            text: truncateResponse(JSON.stringify({ templates, hasMore: data?.hasMore ?? false }, null, 2)),
+            text: truncateResponse(
+              JSON.stringify(
+                { templates, hasMore: data?.hasMore ?? false },
+                null,
+                2,
+              ),
+            ),
           },
         ],
       };
@@ -61,7 +69,14 @@ inspect a template before cloning it into a new workflow.`,
       validateTemplateId(templateId);
       const template = await request<Template>(`/v1/templates/${templateId}`);
       if (!template) throw new Error(`Template ${templateId} not found`);
-      return { content: [{ type: "text", text: truncateResponse(JSON.stringify(template, null, 2)) }] };
+      return {
+        content: [
+          {
+            type: "text",
+            text: truncateResponse(JSON.stringify(template, null, 2)),
+          },
+        ],
+      };
     },
   );
 }

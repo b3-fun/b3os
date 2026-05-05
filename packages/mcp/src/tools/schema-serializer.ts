@@ -1,9 +1,19 @@
 import type { ZodTypeAny } from "zod";
-import { ZodOptional, ZodNullable, ZodDefault, ZodObject, ZodRecord } from "zod";
+import {
+  ZodOptional,
+  ZodNullable,
+  ZodDefault,
+  ZodObject,
+  ZodRecord,
+} from "zod";
 
 /** Unwraps ZodOptional/ZodNullable/ZodDefault to find the inner type. */
 export function unwrapOptional(schema: ZodTypeAny): ZodTypeAny {
-  if (schema instanceof ZodOptional || schema instanceof ZodNullable || schema instanceof ZodDefault) {
+  if (
+    schema instanceof ZodOptional ||
+    schema instanceof ZodNullable ||
+    schema instanceof ZodDefault
+  ) {
     return unwrapOptional(schema.unwrap() as ZodTypeAny);
   }
   return schema;
@@ -22,7 +32,12 @@ export function serializeZodType(schema: ZodTypeAny): string {
   const def = (
     unwrapped as unknown as {
       _zod?: {
-        def?: { type?: string; values?: readonly unknown[]; entries?: Record<string, unknown>; element?: ZodTypeAny };
+        def?: {
+          type?: string;
+          values?: readonly unknown[];
+          entries?: Record<string, unknown>;
+          element?: ZodTypeAny;
+        };
       };
     }
   )._zod?.def;
@@ -47,7 +62,7 @@ export function serializeZodType(schema: ZodTypeAny): string {
       // zod v4 uses `entries` (object), not `values` (array)
       const entries = def.entries ?? {};
       const keys = Object.keys(entries);
-      return keys.map(k => `"${k}"`).join("|");
+      return keys.map((k) => `"${k}"`).join("|");
     }
     case "literal": {
       const values = def.values ?? [];
@@ -77,7 +92,7 @@ export function isOptionalField(schema: ZodTypeAny): boolean {
 export function serializeShape(shape: Record<string, ZodTypeAny>): string {
   const keys = Object.keys(shape);
   if (keys.length === 0) return "{}";
-  const parts = keys.map(key => {
+  const parts = keys.map((key) => {
     const field = shape[key];
     const optional = isOptionalField(field) ? "?" : "";
     const type = serializeZodType(field);

@@ -34,7 +34,11 @@ describe("ApiError friendly hints", () => {
   });
 
   it("includes body text in message", () => {
-    const err = new ApiError(400, "Bad Request", '{"error":"invalid definition"}');
+    const err = new ApiError(
+      400,
+      "Bad Request",
+      '{"error":"invalid definition"}',
+    );
     expect(err.message).toContain("invalid definition");
   });
 

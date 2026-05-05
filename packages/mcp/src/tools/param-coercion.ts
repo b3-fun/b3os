@@ -15,7 +15,12 @@ function isCamelCase(s: string): boolean {
 }
 
 /** Logs a coercion firing for telemetry (stderr, matches auditLog style). */
-function logCoercionFired(toolName: string, from: string, to: string, type?: string): void {
+function logCoercionFired(
+  toolName: string,
+  from: string,
+  to: string,
+  type?: string,
+): void {
   const typeField = type ? ` type=${type}` : "";
   console.error(
     `[b3os-mcp] alias-fired tool=${toolName} from=${from} to=${to}${typeField} at ${new Date().toISOString()}`,
@@ -93,7 +98,8 @@ export function applyStringToObjectCoercion(
     if (typeof value === "string") {
       try {
         out[fieldName] = JSON.parse(value);
-        if (toolName) logCoercionFired(toolName, fieldName, fieldName, "string->object");
+        if (toolName)
+          logCoercionFired(toolName, fieldName, fieldName, "string->object");
       } catch {
         // Leave as-is; zod will produce a proper type error.
       }
@@ -137,7 +143,10 @@ export function buildCoercionPlan(
   shape: Record<string, ZodTypeAny>,
   perToolAliases: Record<string, string>,
 ): CoercionPlan {
-  const aliasEntries: [string, string][] = Object.entries({ ...GLOBAL_ALIASES, ...perToolAliases });
+  const aliasEntries: [string, string][] = Object.entries({
+    ...GLOBAL_ALIASES,
+    ...perToolAliases,
+  });
   const snakeToCamel = new Map<string, string>();
   const objectFields: string[] = [];
   for (const fieldName of Object.keys(shape)) {
@@ -157,7 +166,11 @@ export function buildCoercionPlan(
  * Each stage uses lazy copy — if no coercion fires, the input is returned
  * by reference.
  */
-export function coerceArgsFast(args: unknown, plan: CoercionPlan, toolName: string): unknown {
+export function coerceArgsFast(
+  args: unknown,
+  plan: CoercionPlan,
+  toolName: string,
+): unknown {
   if (!args || typeof args !== "object" || Array.isArray(args)) return args;
   const input = args as Record<string, unknown>;
 
@@ -195,7 +208,8 @@ export function coerceArgsFast(args: unknown, plan: CoercionPlan, toolName: stri
         const parsed = JSON.parse(value);
         out ??= { ...input };
         out[fieldName] = parsed;
-        if (toolName) logCoercionFired(toolName, fieldName, fieldName, "string->object");
+        if (toolName)
+          logCoercionFired(toolName, fieldName, fieldName, "string->object");
       } catch {
         // leave as-is; zod will surface the real error
       }

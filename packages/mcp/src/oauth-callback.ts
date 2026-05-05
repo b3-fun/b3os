@@ -57,26 +57,30 @@ const ERROR_HTML = renderSetupPage({
   logoOpacity: 0.5,
 });
 
-export async function waitForOAuthCallback(options: WaitForOAuthCallbackOptions): Promise<WaitForOAuthCallbackReturn> {
+export async function waitForOAuthCallback(
+  options: WaitForOAuthCallbackOptions,
+): Promise<WaitForOAuthCallbackReturn> {
   const { expectedState, timeoutMs = 300_000 } = options;
 
-  const { server, port } = await new Promise<{ server: Server; port: number }>((resolve, reject) => {
-    const s = createServer();
-    s.on("error", err => {
-      s.close();
-      reject(err);
-    });
-    // Bind to 127.0.0.1 only (never 0.0.0.0) and let the OS pick a free port (port 0)
-    s.listen(0, "127.0.0.1", () => {
-      const addr = s.address();
-      if (addr && typeof addr === "object") {
-        resolve({ server: s, port: addr.port });
-      } else {
+  const { server, port } = await new Promise<{ server: Server; port: number }>(
+    (resolve, reject) => {
+      const s = createServer();
+      s.on("error", (err) => {
         s.close();
-        reject(new Error("Failed to determine callback server port"));
-      }
-    });
-  });
+        reject(err);
+      });
+      // Bind to 127.0.0.1 only (never 0.0.0.0) and let the OS pick a free port (port 0)
+      s.listen(0, "127.0.0.1", () => {
+        const addr = s.address();
+        if (addr && typeof addr === "object") {
+          resolve({ server: s, port: addr.port });
+        } else {
+          s.close();
+          reject(new Error("Failed to determine callback server port"));
+        }
+      });
+    },
+  );
 
   const result = new Promise<AuthCallbackResult>((resolve, reject) => {
     let handled = false;
@@ -84,7 +88,9 @@ export async function waitForOAuthCallback(options: WaitForOAuthCallbackOptions)
       if (handled) return;
       handled = true;
       server.close();
-      reject(new Error(`Timed out after ${Math.round(timeoutMs / 60_000)} minutes`));
+      reject(
+        new Error(`Timed out after ${Math.round(timeoutMs / 60_000)} minutes`),
+      );
     }, timeoutMs);
 
     server.on("request", (req, res) => {
@@ -118,7 +124,11 @@ export async function waitForOAuthCallback(options: WaitForOAuthCallbackOptions)
         // before the promise rejects — prevents PromiseRejectionHandledWarning in tests
         res.on("finish", () => {
           server.close();
-          reject(new Error("Invalid OAuth callback: missing token/orgId or state mismatch"));
+          reject(
+            new Error(
+              "Invalid OAuth callback: missing token/orgId or state mismatch",
+            ),
+          );
         });
         return;
       }

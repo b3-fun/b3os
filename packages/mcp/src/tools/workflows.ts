@@ -26,7 +26,10 @@ export function registerWorkflowTools(s: McpServer): void {
 last triggered). Use this to find a workflow by name before getting its details.
 Filter by status to find active, paused, or draft workflows.`,
       inputSchema: {
-        status: z.enum(["draft", "active", "paused", "archived"]).optional().describe("Filter by workflow status"),
+        status: z
+          .enum(["draft", "active", "paused", "archived"])
+          .optional()
+          .describe("Filter by workflow status"),
         limit: z.number().optional().describe("Max results (default: 20)"),
         offset: z
           .number()
@@ -37,9 +40,16 @@ Filter by status to find active, paused, or draft workflows.`,
       },
     },
     async ({ status, limit, offset }) => {
-      const { params, safeLimit } = buildPaginationParams({ limit, offset, status });
-      params._fields_filter = "id,name,status,description,lastTriggeredAt,createdAt";
-      const data = await request<PaginatedData<Workflow>>("/v1/workflows", { params });
+      const { params, safeLimit } = buildPaginationParams({
+        limit,
+        offset,
+        status,
+      });
+      params._fields_filter =
+        "id,name,status,description,lastTriggeredAt,createdAt";
+      const data = await request<PaginatedData<Workflow>>("/v1/workflows", {
+        params,
+      });
       const { items: workflows, hasMore } = applyClientSideFilter(
         data?.items || [],
         status ? (w: Workflow) => w.status === status : null,
@@ -53,7 +63,7 @@ Filter by status to find active, paused, or draft workflows.`,
             type: "text",
             text: JSON.stringify(
               {
-                workflows: workflows.map(w => ({
+                workflows: workflows.map((w) => ({
                   id: w.id,
                   name: w.name,
                   status: w.status,
@@ -78,13 +88,22 @@ Filter by status to find active, paused, or draft workflows.`,
     {
       description: `Get a workflow's full details including its definition (nodes, triggers, connections).
 Use this to inspect an existing workflow before modifying it.`,
-      inputSchema: { workflowId: z.string().describe("Workflow ID (e.g. 'wf_abc123')") },
+      inputSchema: {
+        workflowId: z.string().describe("Workflow ID (e.g. 'wf_abc123')"),
+      },
     },
     async ({ workflowId }) => {
       validateWorkflowId(workflowId);
       const workflow = await request<Workflow>(`/v1/workflows/${workflowId}`);
       if (!workflow) throw new Error(`Workflow ${workflowId} not found`);
-      return { content: [{ type: "text", text: truncateResponse(JSON.stringify(workflow, null, 2)) }] };
+      return {
+        content: [
+          {
+            type: "text",
+            text: truncateResponse(JSON.stringify(workflow, null, 2)),
+          },
+        ],
+      };
     },
   );
 
@@ -108,7 +127,8 @@ After saving, use b3os_publish_workflow to make it live.`,
         method: "POST",
         body: { name, description, definition },
       });
-      if (!workflow) throw new Error("Failed to create workflow — empty response");
+      if (!workflow)
+        throw new Error("Failed to create workflow — empty response");
       const url = workflowEditUrl(workflow.id);
       return {
         content: [
@@ -131,17 +151,27 @@ After saving, use b3os_publish_workflow to make it live.`,
         name: z.string().optional().describe("New name"),
         description: z.string().optional().describe("New description"),
         definition: definitionSchema.optional(),
-        expectedCurrentVersion: z.number().optional().describe("Expected current version (optimistic locking)"),
+        expectedCurrentVersion: z
+          .number()
+          .optional()
+          .describe("Expected current version (optimistic locking)"),
       },
       aliases: { workflow: "definition" },
     },
-    async ({ workflowId, name, description, definition, expectedCurrentVersion }) => {
+    async ({
+      workflowId,
+      name,
+      description,
+      definition,
+      expectedCurrentVersion,
+    }) => {
       validateWorkflowId(workflowId);
       const body: Record<string, unknown> = {};
       if (name !== undefined) body.name = name;
       if (description !== undefined) body.description = description;
       if (definition !== undefined) body.definition = definition;
-      if (expectedCurrentVersion !== undefined) body.expectedCurrentVersion = expectedCurrentVersion;
+      if (expectedCurrentVersion !== undefined)
+        body.expectedCurrentVersion = expectedCurrentVersion;
 
       const workflow = await request<Workflow>(`/v1/workflows/${workflowId}`, {
         method: "PUT",
@@ -168,7 +198,11 @@ After saving, use b3os_publish_workflow to make it live.`,
 and no longer execute. Always confirm with the user before calling this tool.`,
       inputSchema: {
         workflowId: z.string().describe("Workflow ID to delete"),
-        confirm: z.literal(true).describe("Must be exactly true to confirm deletion — this is irreversible"),
+        confirm: z
+          .literal(true)
+          .describe(
+            "Must be exactly true to confirm deletion — this is irreversible",
+          ),
       },
     },
     // `confirm` is enforced by the z.literal(true) guard in the schema above —
@@ -178,7 +212,9 @@ and no longer execute. Always confirm with the user before calling this tool.`,
       validateWorkflowId(workflowId);
       auditLog("DELETE", `workflow ${workflowId}`);
       await request(`/v1/workflows/${workflowId}`, { method: "DELETE" });
-      return { content: [{ type: "text", text: `Workflow ${workflowId} deleted.` }] };
+      return {
+        content: [{ type: "text", text: `Workflow ${workflowId} deleted.` }],
+      };
     },
   );
 
@@ -191,7 +227,10 @@ it starts in "draft" status. Publishing activates its triggers (schedules, webho
 so it begins executing automatically.`,
       inputSchema: {
         workflowId: z.string().describe("Workflow ID to publish"),
-        expectedVersion: z.number().optional().describe("Expected version (optimistic locking)"),
+        expectedVersion: z
+          .number()
+          .optional()
+          .describe("Expected version (optimistic locking)"),
       },
     },
     async ({ workflowId, expectedVersion }) => {
@@ -200,11 +239,15 @@ so it begins executing automatically.`,
       const body: Record<string, unknown> = {};
       if (expectedVersion !== undefined) body.expectedVersion = expectedVersion;
 
-      const workflow = await request<Workflow>(`/v1/workflows/${workflowId}/publish`, {
-        method: "POST",
-        body: Object.keys(body).length > 0 ? body : undefined,
-      });
-      if (!workflow) throw new Error(`Failed to publish workflow ${workflowId}`);
+      const workflow = await request<Workflow>(
+        `/v1/workflows/${workflowId}/publish`,
+        {
+          method: "POST",
+          body: Object.keys(body).length > 0 ? body : undefined,
+        },
+      );
+      if (!workflow)
+        throw new Error(`Failed to publish workflow ${workflowId}`);
       const url = workflowEditUrl(workflowId);
       return {
         content: [
@@ -230,7 +273,9 @@ Use b3os_resume_workflow to reactivate it.`,
     async ({ workflowId }) => {
       validateWorkflowId(workflowId);
       await request(`/v1/workflows/${workflowId}/pause`, { method: "POST" });
-      return { content: [{ type: "text", text: `Workflow ${workflowId} paused.` }] };
+      return {
+        content: [{ type: "text", text: `Workflow ${workflowId} paused.` }],
+      };
     },
   );
 
@@ -244,7 +289,9 @@ Use b3os_resume_workflow to reactivate it.`,
     async ({ workflowId }) => {
       validateWorkflowId(workflowId);
       await request(`/v1/workflows/${workflowId}/resume`, { method: "POST" });
-      return { content: [{ type: "text", text: `Workflow ${workflowId} resumed.` }] };
+      return {
+        content: [{ type: "text", text: `Workflow ${workflowId} resumed.` }],
+      };
     },
   );
 
@@ -259,21 +306,28 @@ including any missing fields, invalid payloads, or misconfigured nodes.`,
         name: z
           .string()
           .optional()
-          .describe("Workflow name (defaults to 'Untitled' — the API requires a name for validation)"),
+          .describe(
+            "Workflow name (defaults to 'Untitled' — the API requires a name for validation)",
+          ),
         definition: definitionSchema,
       },
       aliases: { workflow: "definition" },
     },
     async ({ name, definition }) => {
-      const result = await request<Record<string, unknown>>("/v1/workflows/validate", {
-        method: "POST",
-        body: { name: name || "Untitled", definition },
-      });
+      const result = await request<Record<string, unknown>>(
+        "/v1/workflows/validate",
+        {
+          method: "POST",
+          body: { name: name || "Untitled", definition },
+        },
+      );
       return {
         content: [
           {
             type: "text",
-            text: result ? `Validation result:\n${JSON.stringify(result, null, 2)}` : "Workflow definition is valid.",
+            text: result
+              ? `Validation result:\n${JSON.stringify(result, null, 2)}`
+              : "Workflow definition is valid.",
           },
         ],
       };
@@ -288,7 +342,10 @@ including any missing fields, invalid payloads, or misconfigured nodes.`,
 Use this to see the change history and find a version to rollback to.`,
       inputSchema: {
         workflowId: z.string().describe("Workflow ID (e.g. 'wf_abc123')"),
-        limit: z.number().optional().describe("Max versions to return (default: 20)"),
+        limit: z
+          .number()
+          .optional()
+          .describe("Max versions to return (default: 20)"),
         offset: z.number().optional().describe("Offset for pagination"),
       },
     },
@@ -298,8 +355,11 @@ Use this to see the change history and find a version to rollback to.`,
         limit: String(Math.min(limit ?? 20, 50)),
         offset: String(offset ?? 0),
       };
-      const data = await request<PaginatedData<WorkflowVersion>>(`/v1/workflows/${workflowId}/versions`, { params });
-      const versions = (data?.items || []).map(v => ({
+      const data = await request<PaginatedData<WorkflowVersion>>(
+        `/v1/workflows/${workflowId}/versions`,
+        { params },
+      );
+      const versions = (data?.items || []).map((v) => ({
         versionNumber: v.versionNumber,
         status: v.status,
         createdBy: v.createdBy,
@@ -310,7 +370,13 @@ Use this to see the change history and find a version to rollback to.`,
         content: [
           {
             type: "text",
-            text: truncateResponse(JSON.stringify({ versions, hasMore: data?.hasMore ?? false }, null, 2)),
+            text: truncateResponse(
+              JSON.stringify(
+                { versions, hasMore: data?.hasMore ?? false },
+                null,
+                2,
+              ),
+            ),
           },
         ],
       };
@@ -327,16 +393,26 @@ from the specified version. After rollback, review and publish to make it live.
 Use b3os_list_workflow_versions to find the target version number.`,
       inputSchema: {
         workflowId: z.string().describe("Workflow ID to rollback"),
-        versionNumber: z.number().int().min(1).describe("Target version number to rollback to"),
+        versionNumber: z
+          .number()
+          .int()
+          .min(1)
+          .describe("Target version number to rollback to"),
       },
     },
     async ({ workflowId, versionNumber }) => {
       validateWorkflowId(workflowId);
-      auditLog("ROLLBACK", `workflow ${workflowId} to version ${versionNumber}`);
-      const result = await request<Workflow>(`/v1/workflows/${workflowId}/rollback`, {
-        method: "POST",
-        body: { versionNumber },
-      });
+      auditLog(
+        "ROLLBACK",
+        `workflow ${workflowId} to version ${versionNumber}`,
+      );
+      const result = await request<Workflow>(
+        `/v1/workflows/${workflowId}/rollback`,
+        {
+          method: "POST",
+          body: { versionNumber },
+        },
+      );
       if (!result) throw new Error(`Failed to rollback workflow ${workflowId}`);
       const url = workflowEditUrl(workflowId);
       return {
@@ -362,8 +438,11 @@ run next. Only meaningful for workflows with schedule-based triggers (cron).`,
     },
     async ({ workflowId }) => {
       validateWorkflowId(workflowId);
-      const schedule = await request<Record<string, unknown>>(`/v1/workflows/${workflowId}/schedule`);
-      if (!schedule) throw new Error(`No schedule found for workflow ${workflowId}`);
+      const schedule = await request<Record<string, unknown>>(
+        `/v1/workflows/${workflowId}/schedule`,
+      );
+      if (!schedule)
+        throw new Error(`No schedule found for workflow ${workflowId}`);
       return {
         content: [
           {
