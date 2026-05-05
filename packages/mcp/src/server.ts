@@ -103,6 +103,11 @@ Use b3os_balance_lookup to see which chains and tokens the wallet holds, then pr
 the options and let the user choose. Never assume defaults for chain or token — the
 user may not have funds on the default chain.
 
+BEFORE HYPERLIQUID PERPS TRADING: Run hyperliquid-get-account (via b3os_run_action) to
+check the user's current leverage setting and open positions. Report it (e.g. "You're at
+10x cross on BTC") and ask if they want to adjust. If they want to switch margin mode
+(cross↔isolated) but have an open position, tell them to close it first.
+
 HOW TO BUILD WORKFLOWS:
 
 ALWAYS use b3os_build_workflow to construct workflows — NEVER manually write workflow

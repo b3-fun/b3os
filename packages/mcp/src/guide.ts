@@ -163,7 +163,7 @@ the full payload and result schemas. Common categories:
 
 - **Token ops:** \`send-erc20-token\`, \`send-native-token\`, \`approve-erc20\`
 - **Swaps:** \`0x-swap\`, \`cow-swap-gasless\`, \`relay-swap\`, \`swapkit-swap\`
-- **Perps/Trading:** \`hyperliquid-market-order\`, \`hyperliquid-limit-order\`, \`hyperliquid-update-leverage\`, \`hyperliquid-close-position\`, \`hyperliquid-stop-loss\`, \`hyperliquid-take-profit\`
+- **Perps/Trading:** \`hyperliquid-market-order\`, \`hyperliquid-limit-order\`, \`hyperliquid-update-leverage\`, \`hyperliquid-close-position\`, \`hyperliquid-stop-loss\`, \`hyperliquid-take-profit\`, \`hyperliquid-get-account\`
 - **DeFi:** \`morpho-vault-deposit\`, \`morpho-vault-withdraw\`, \`v3-add-liquidity\`
 - **Data:** \`coingecko-get-token-price\`, \`coinglass-get-funding-rate\`
 - **Messaging:** \`slack-send-message\`, \`slack-send-block-kit-message\`, \`discord-send-message\`, \`telegram-send-message\`
@@ -362,6 +362,12 @@ Use named lookup tools for common queries:
 **Database:**
 - **db-query results are always wrapped in a \`rows\` array** — access as \`{{node.result.rows.0.field}}\`, NEVER \`{{node.result.field}}\`.
 - **Use COALESCE for first-run safety:** \`SELECT COALESCE((SELECT spent FROM budgets WHERE id = ?), 0)\` — prevents row[0] IndexOutOfBounds.
+
+**Perps/Trading (Hyperliquid):**
+- **Check leverage before trading:** Run \`hyperliquid-get-account\` first to see current leverage and positions. Hyperliquid defaults to 20x cross — aggressive for stocks, recommend 3-5x for trade.xyz assets.
+- **Cannot switch margin mode with open position:** \`hyperliquid-update-leverage\` will reject switching between cross/isolated if the user holds an open position on that coin. They must close the position first.
+- **update-leverage is idempotent:** If leverage is already at the requested setting, the action returns success with \`skipped: true\` — no extra API call to the exchange.
+- **Dex variants:** Pass \`dex: "xyz"\` for trade.xyz (stocks), \`dex: "flx"\` for flx.finance, \`dex: "vntl"\` for vntl.exchange. Omit for standard crypto perps.
 
 **Polymarket:**
 - **polymarket-redeem: add an if guard** checking \`{{redeem.result.redeemedAmount}}\` > 0 before downstream actions — redeemedAmount is ZERO for losing outcomes.
