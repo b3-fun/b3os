@@ -43,7 +43,88 @@ function formatWorkflowResponse(
   return truncateResponse(parts.join("\n"));
 }
 
+async function invokeCaddie(
+  streamPayload: Parameters<typeof consumeCaddieStream>[2],
+  errorPrefix: string,
+  fallbackMessage: string,
+) {
+  try {
+    const apiKey = await getApiKey();
+    const serverUrl = getServerUrl();
+    const done = await consumeCaddieStream(apiKey, serverUrl, streamPayload);
+
+    if (done.data.type === "workflow" && done.data.workflow) {
+      const text = formatWorkflowResponse(
+        done,
+        "Caddie generated a workflow definition:\n",
+        "1. Review the definition and fill in any incomplete fields\n2. Use b3os_validate_workflow to check for errors\n3. Use b3os_create_workflow or b3os_update_workflow to save it",
+      );
+      return { content: [{ type: "text" as const, text }] };
+    }
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: formatCaddieBlocksForCLI(done.data.message || fallbackMessage),
+        },
+      ],
+    };
+  } catch (err) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `${errorPrefix}: ${err instanceof Error ? err.message : err}`,
+        },
+      ],
+    };
+  }
+}
+
 export function registerCaddieTools(s: McpServer): void {
+  registerToolSafe(
+    s,
+    "b3os_chat_caddie",
+    {
+      description: `Chat with Caddie, the B3OS AI agent. Ask questions about crypto, DeFi, trading
+strategies, workflow design, action capabilities, or anything blockchain-related.
+
+Caddie has deep domain knowledge across:
+- DeFi protocols (Morpho, Aerodrome, Uniswap, Hyperliquid)
+- Prediction markets (Polymarket)
+- Token/chain data, funding rates, whale activity
+- Workflow automation patterns and best practices
+- B3OS platform capabilities
+
+Use this for advice, strategy questions, and general conversation.
+For building workflows, use b3os_build_workflow instead.
+For debugging failed runs, use b3os_debug_run instead.`,
+      inputSchema: {
+        message: z.string().describe("Your question or message for Caddie"),
+        workflowId: z
+          .string()
+          .optional()
+          .describe(
+            "Optional workflow ID for context (e.g. when asking about a specific workflow)",
+          ),
+      },
+      aliases: { prompt: "message" },
+    },
+    async ({ message, workflowId }) => {
+      if (workflowId) validateWorkflowId(workflowId);
+      auditLog(
+        "CADDIE_CHAT",
+        workflowId ? `workflow ${workflowId}` : undefined,
+      );
+      return invokeCaddie(
+        { message, workflowId },
+        "Caddie chat failed",
+        "Caddie did not return a response.",
+      );
+    },
+  );
+
   registerToolSafe(
     s,
     "b3os_build_workflow",
@@ -79,52 +160,16 @@ along with any incomplete fields that still need user input and validation error
       aliases: { prompt: "message" },
     },
     async ({ message, workflowId, definition }) => {
-      try {
-        if (workflowId) validateWorkflowId(workflowId);
-        auditLog(
-          "CADDIE_BUILD",
-          workflowId ? `workflow ${workflowId}` : "new workflow",
-        );
-
-        const apiKey = await getApiKey();
-        const serverUrl = getServerUrl();
-
-        const done = await consumeCaddieStream(apiKey, serverUrl, {
-          message,
-          workflowId,
-          definition,
-        });
-
-        if (done.data.type === "workflow" && done.data.workflow) {
-          const text = formatWorkflowResponse(
-            done,
-            "Caddie generated a workflow definition:\n",
-            "1. Review the definition and fill in any incomplete fields\n2. Use b3os_validate_workflow to check for errors\n3. Use b3os_create_workflow or b3os_update_workflow to save it",
-          );
-          return { content: [{ type: "text", text }] };
-        }
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: formatCaddieBlocksForCLI(
-                done.data.message ||
-                  "Caddie did not return a workflow or message.",
-              ),
-            },
-          ],
-        };
-      } catch (err) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Caddie build failed: ${err instanceof Error ? err.message : err}`,
-            },
-          ],
-        };
-      }
+      if (workflowId) validateWorkflowId(workflowId);
+      auditLog(
+        "CADDIE_BUILD",
+        workflowId ? `workflow ${workflowId}` : "new workflow",
+      );
+      return invokeCaddie(
+        { message, workflowId, definition },
+        "Caddie build failed",
+        "Caddie did not return a workflow or message.",
+      );
     },
   );
 

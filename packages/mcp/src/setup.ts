@@ -142,6 +142,39 @@ function waitForEnter(promptText: string): Promise<void> {
   });
 }
 
+function promptSetupChoice(): Promise<"signin" | "quickstart"> {
+  return new Promise((resolve) => {
+    process.stdout.write(
+      "\nHow would you like to connect?\n\n" +
+        "  1. Sign in or create account — Opens browser to log in or register\n" +
+        "  2. Quick start — Instant access, no sign-up needed\n\n" +
+        "Choice [1/2]: ",
+    );
+
+    if (!process.stdin.isTTY) {
+      const useQuickStart = process.env.B3OS_QUICK_START === "1";
+      process.stdout.write(useQuickStart ? "2\n" : "1\n");
+      resolve(useQuickStart ? "quickstart" : "signin");
+      return;
+    }
+
+    const rl = createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+    rl.once("line", (line: string) => {
+      rl.close();
+      const choice = line.trim();
+      if (choice === "2") {
+        resolve("quickstart");
+      } else {
+        resolve("signin");
+      }
+    });
+    rl.once("close", () => resolve("signin"));
+  });
+}
+
 function openBrowser(url: string): void {
   const [cmd, ...args] =
     process.platform === "darwin"
@@ -577,6 +610,46 @@ ${BRAND}  ╚═════╝ ╚═════╝  ╚═════╝ ╚
   ${DIM}MCP server setup — connect Claude to B3OS${RESET}
 `;
 
+async function quickStartFlow(serverUrl: string): Promise<void> {
+  const { callBootstrap } = await import("./bootstrap-api.js");
+
+  process.stdout.write("\n  Provisioning account...\n");
+  const result = await callBootstrap(serverUrl);
+
+  const keystoreKind = detectKeystore();
+  await storeApiKey(result.apiKey);
+
+  ensureBuild();
+  const linkResult = linkGlobally();
+  const useGlobalCommand = linkResult !== "failed";
+
+  const userScopeMcpJson = join(homedir(), ".claude", "mcp.json");
+  writeMcpJsonEntry(
+    userScopeMcpJson,
+    result.apiKey,
+    useGlobalCommand,
+    keystoreKind,
+    {
+      type: "stdio",
+    },
+  );
+
+  const settingsPath = join(homedir(), ".claude", "settings.json");
+  const settingsConfig = readJsonConfig(settingsPath);
+  mergeAllowedTools(settingsConfig, SAFE_AUTO_APPROVE_TOOLS);
+  writeJsonConfig(settingsPath, settingsConfig);
+
+  process.stdout.write(
+    `\n  ✓ Connected to B3OS (${result.orgSlug})\n\n` +
+      `  Your account is ready with ${result.initialCuGrant} CU.\n` +
+      `  To claim this account and add your email:\n` +
+      `    ${result.claimUrl}\n\n` +
+      `  Claim is optional — you can start using B3OS now.\n` +
+      `\n  Restart Claude Code, then try:\n` +
+      `    "Build a workflow that monitors ETH price every 5 min"\n\n`,
+  );
+}
+
 async function main(): Promise<void> {
   if (process.argv.slice(2).includes("--diagnose")) {
     await runDiagnose();
@@ -585,6 +658,14 @@ async function main(): Promise<void> {
 
   print(BANNER);
 
+  const setupChoice = await promptSetupChoice();
+
+  if (setupChoice === "quickstart") {
+    await quickStartFlow(B3OS_SERVER_URL);
+    return;
+  }
+
+  print("");
   print("  1. Logging in via browser...");
   print("");
 
