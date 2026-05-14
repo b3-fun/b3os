@@ -15,6 +15,18 @@ exports[`tool schema snapshot > captures the public surface of every registered 
     "signature": "Call signature: { runId: string }",
   },
   {
+    "name": "b3os_chat_caddie",
+    "signature": "Call signature: { message: string, workflowId?: string }",
+  },
+  {
+    "name": "b3os_coinglass_markets",
+    "signature": "Call signature: { coin?: string, exchange?: string }",
+  },
+  {
+    "name": "b3os_coinglass_whales",
+    "signature": "Call signature: { alerts?: boolean, address?: string }",
+  },
+  {
     "name": "b3os_create_workflow",
     "signature": "Call signature: { name: string, description: string, definition: object }",
   },
@@ -65,6 +77,18 @@ exports[`tool schema snapshot > captures the public surface of every registered 
   {
     "name": "b3os_get_workflow_schedule",
     "signature": "Call signature: { workflowId: string }",
+  },
+  {
+    "name": "b3os_hyperliquid_account",
+    "signature": "Call signature: { address: string, dex?: string }",
+  },
+  {
+    "name": "b3os_hyperliquid_funding",
+    "signature": "Call signature: { coin?: string, dex?: string }",
+  },
+  {
+    "name": "b3os_hyperliquid_markets",
+    "signature": "Call signature: { coin?: string, dex?: string }",
   },
   {
     "name": "b3os_list_actions",
@@ -123,12 +147,20 @@ exports[`tool schema snapshot > captures the public surface of every registered 
     "signature": "Call signature: { confirm: true }",
   },
   {
+    "name": "b3os_morpho_yields",
+    "signature": "Call signature: { tokenAddress?: string, vaultAddress?: string, walletAddress?: string, chainId?: number, minApyPercent?: number, rewards?: boolean }",
+  },
+  {
     "name": "b3os_pause_workflow",
     "signature": "Call signature: { workflowId: string }",
   },
   {
     "name": "b3os_polymarket_lookup",
     "signature": "Call signature: { query?: string, slug?: string, marketUrl?: string }",
+  },
+  {
+    "name": "b3os_polymarket_traders",
+    "signature": "Call signature: { walletAddress?: string, conditionId?: string, category?: string, timePeriod?: string, orderBy?: string, limit?: number }",
   },
   {
     "name": "b3os_price_lookup",
@@ -140,7 +172,7 @@ exports[`tool schema snapshot > captures the public surface of every registered 
   },
   {
     "name": "b3os_query_action",
-    "signature": "Call signature: { actionType: string, payload: unknown }",
+    "signature": "Call signature: { actionType: string, payload?: object }",
   },
   {
     "name": "b3os_query_database",
@@ -160,7 +192,7 @@ exports[`tool schema snapshot > captures the public surface of every registered 
   },
   {
     "name": "b3os_run_action",
-    "signature": "Call signature: { actionType: string, inputs?: unknown, walletId?: string, connectorId?: string }",
+    "signature": "Call signature: { actionType: string, inputs?: object, walletId?: string, connectorId?: string }",
   },
   {
     "name": "b3os_run_ephemeral",
@@ -176,7 +208,7 @@ exports[`tool schema snapshot > captures the public surface of every registered 
   },
   {
     "name": "b3os_test_trigger",
-    "signature": "Call signature: { type: string, payload?: unknown, connectorId?: string, connectorType?: string }",
+    "signature": "Call signature: { type: string, payload?: object, connectorId?: string, connectorType?: string }",
   },
   {
     "name": "b3os_token_lookup",

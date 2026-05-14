@@ -135,7 +135,10 @@ Use b3os_search_actions to discover available action types.`,
           .describe(
             'Action type ID — hyphens only, no slashes (e.g. "coingecko-get-token-price", "sim-dune-get-wallet-balances")',
           ),
-        inputs: z.any().optional().describe("Action input payload"),
+        inputs: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe("Action input payload"),
         walletId: z
           .string()
           .optional()

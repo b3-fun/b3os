@@ -19,7 +19,6 @@ interface ColumnInfo {
 interface QueryResult {
   rows: Record<string, unknown>[];
   rowsAffected: number;
-  lastRowId: number;
 }
 
 // isReadOnlySQL mirrors the backend's `isReadOnlySQL` validation.
@@ -93,9 +92,9 @@ Use this to understand table structure before writing queries.`,
     s,
     "b3os_query_database",
     {
-      description: `Execute read-only SQL queries against the organization's database (SQLite-compatible).
+      description: `Execute read-only SQL queries against the organization's database (PostgreSQL).
 
-Only SELECT statements are supported. CTEs (WITH ...), PRAGMA, and write
+Only SELECT statements are supported. CTEs (WITH ...) and write
 operations (INSERT, UPDATE, DELETE, CREATE, ALTER, DROP) are rejected — the
 MCP service account has database:read permission only.
 Use b3os_get_table_schema for schema introspection.

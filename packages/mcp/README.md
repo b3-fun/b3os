@@ -164,13 +164,11 @@ Or for debugging:
 
 ### CI / headless environments
 
-For machines without a browser, create an API key from the B3OS dashboard and set it directly:
-
-```bash
-export B3OS_API_KEY=b3sk_...
-```
-
-The runtime reads `B3OS_API_KEY` from the environment — no wizard needed.
+For machines without a browser (CI runners, headless servers), create an API key
+from the [B3OS dashboard](https://b3os.org/organizations/settings?tab=api-keys)
+and inject it via your CI platform's secrets management (e.g., GitHub Actions
+secrets, Doppler, Vault). The runtime reads the `B3OS_API_KEY` environment
+variable automatically — no wizard needed.
 
 ### Manual config (advanced)
 
@@ -193,22 +191,9 @@ only `B3OS_SERVER_URL`. The API key is read from the OS keystore at runtime:
 }
 ```
 
-**On Linux or to override the keystore (e.g., CI / headless):** include `B3OS_API_KEY`
-directly in the `env` block:
-
-```json
-{
-  "mcpServers": {
-    "b3os-mcp": {
-      "type": "stdio",
-      "command": "b3os-mcp",
-      "env": {
-        "B3OS_API_KEY": "b3sk_your_key_here"
-      }
-    }
-  }
-}
-```
+**On Linux (no keystore):** the setup wizard writes the API key into the `env`
+block automatically. If you need to configure manually, run `pnpm run setup`
+first — it stores the key and generates the config for you.
 
 > **nvm / fnm users:** If `b3os-mcp` isn't resolved — common with Claude Desktop since it doesn't inherit your shell's `PATH` — replace `"command": "b3os-mcp"` with the absolute node path and the absolute path to `dist/index.js`. Find your node with `which node`. The interactive setup handles this automatically.
 

@@ -13,7 +13,7 @@ import { registerToolSafe } from "./register-tool-safe.js";
  * 3. Use queryAction(actionType, payload) helper
  */
 
-async function queryAction(
+export async function queryAction(
   actionType: string,
   payload: Record<string, unknown>,
 ): Promise<string> {

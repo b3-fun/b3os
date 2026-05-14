@@ -292,7 +292,7 @@ payloads before wiring them into a workflow definition.`,
             "Trigger type identifier (e.g. 'cronjob', 'webhook', 'erc20-transfer')",
           ),
         payload: z
-          .any()
+          .record(z.string(), z.unknown())
           .optional()
           .describe("Trigger configuration payload to test"),
         connectorId: z

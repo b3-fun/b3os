@@ -5,12 +5,12 @@ export const ACTION_TYPE_RE = /^[a-z0-9][a-z0-9-]*$/;
 
 /** Workflow definition schema — must be an object with a `nodes` map. */
 export const definitionSchema = z
-  .object({ nodes: z.record(z.string(), z.any()) })
+  .object({ nodes: z.record(z.string(), z.unknown()) })
   .describe("Workflow definition (JSON object with nodes map)");
 
 /** Payload schema — must be a key-value object, not a primitive or array. */
 export const payloadSchema = z
-  .record(z.string(), z.any())
+  .record(z.string(), z.unknown())
   .describe("Payload key-value object");
 
 export function validateWorkflowId(workflowId: string): void {

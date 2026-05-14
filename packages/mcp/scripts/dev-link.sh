@@ -30,13 +30,17 @@ if [ -z "${B3OS_API_KEY:-}" ] || [ -z "${B3OS_SERVER_URL:-}" ]; then
   fi
 fi
 
+# On macOS, try the Keychain before giving up.
+if [ -z "${B3OS_API_KEY:-}" ] && command -v security &>/dev/null; then
+  B3OS_API_KEY="$(security find-generic-password -s b3os-mcp -w 2>/dev/null || true)"
+fi
+
 if [ -z "${B3OS_API_KEY:-}" ]; then
   cat >&2 <<EOF
-✗ B3OS_API_KEY not set and no existing user-scope entry to inherit from.
+✗ B3OS_API_KEY not found.
 
-Options:
-  1. Run b3os-mcp-setup first to install a user-scope entry with your key.
-  2. Or export the key manually: B3OS_API_KEY=b3sk_... pnpm dev:link
+Run b3os-mcp-setup first to install your key in the OS keystore:
+  pnpm run setup
 EOF
   exit 1
 fi

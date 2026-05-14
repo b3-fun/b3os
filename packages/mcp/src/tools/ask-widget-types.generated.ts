@@ -29,6 +29,7 @@ export const ASK_WIDGET_TYPES = [
   "telegram-chat",
   "polymarket-outcome",
   "slack-channel",
+  "discord-channel",
   "quickbooks-account",
   "connector-account",
   "database-table",

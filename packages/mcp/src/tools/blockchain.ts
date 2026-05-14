@@ -32,7 +32,8 @@ For write operations (send tokens, place bets), build a workflow instead.`,
             "Action type (e.g. 'debug-transaction', 'polymarket-search-markets')",
           ),
         payload: z
-          .any()
+          .record(z.string(), z.unknown())
+          .optional()
           .describe(
             "Action payload object. Fields depend on the action — use b3os_get_action to see the schema.",
           ),

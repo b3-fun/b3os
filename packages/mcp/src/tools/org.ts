@@ -29,20 +29,25 @@ export function registerOrgTools(s: McpServer): void {
         };
       }
       const org = orgs[0];
+      const response: Record<string, unknown> = {
+        id: org.id,
+        name: org.name,
+        slug: org.slug,
+        description: org.description,
+      };
+
+      // Detect bootstrap org by slug prefix
+      if (org.slug?.startsWith("bootstrap-")) {
+        response.bootstrap = true;
+        response.note =
+          "This is a bootstrap account. Visit b3os.org to claim it and make it permanent.";
+      }
+
       return {
         content: [
           {
             type: "text",
-            text: JSON.stringify(
-              {
-                id: org.id,
-                name: org.name,
-                slug: org.slug,
-                description: org.description,
-              },
-              null,
-              2,
-            ),
+            text: JSON.stringify(response, null, 2),
           },
         ],
       };

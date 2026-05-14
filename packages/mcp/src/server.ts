@@ -7,6 +7,7 @@ import { registerRunTools } from "./tools/runs.js";
 import { registerBlockchainTools } from "./tools/blockchain.js";
 import { registerDatabaseTools } from "./tools/database.js";
 import { registerLookupTools } from "./tools/lookups.js";
+import { registerExtendedLookupTools } from "./tools/lookups-extended.js";
 import { registerCaddieTools } from "./tools/caddie.js";
 import { registerTemplateTools } from "./tools/templates.js";
 
@@ -103,9 +104,9 @@ Use b3os_balance_lookup to see which chains and tokens the wallet holds, then pr
 the options and let the user choose. Never assume defaults for chain or token — the
 user may not have funds on the default chain.
 
-BEFORE HYPERLIQUID PERPS TRADING: Run hyperliquid-get-account (via b3os_run_action) to
-check the user's current leverage setting and open positions. Report it (e.g. "You're at
-10x cross on BTC") and ask if they want to adjust. If they want to switch margin mode
+BEFORE HYPERLIQUID PERPS TRADING: Call b3os_hyperliquid_account to check the user's
+current leverage setting and open positions. Report it (e.g. "You're at 10x cross on
+BTC") and ask if they want to adjust. If they want to switch margin mode
 (cross↔isolated) but have an open position, tell them to close it first.
 
 HOW TO BUILD WORKFLOWS:
@@ -122,6 +123,10 @@ is to gather user requirements and relay them to Caddie in natural language.
 5. Confirm with user → then deploy: b3os_publish_workflow
 
 To modify an existing workflow, pass its workflowId to b3os_build_workflow.
+
+ASK CADDIE: Use b3os_chat_caddie to ask Caddie questions about crypto, DeFi strategies,
+trading advice, workflow design, or B3OS capabilities. Caddie has deep domain knowledge
+and can help with research and planning before you build or execute anything.
 
 DEBUGGING FAILED RUNS:
 
@@ -152,22 +157,37 @@ LOGIC ACTIONS (control flow nodes):
 COMPUTE UNITS:
 - b3os_get_cu_balance → check org's CU balance and usage (requires orgId from b3os_whoami)
 
-DATA QUERIES (use named lookup tools for common queries):
+DATA QUERIES (named lookup tools — all read-only, zero CU cost):
 
 - Token info: b3os_token_lookup (network + address, or coinId)
 - Prices: b3os_price_lookup (coinIds)
 - Wallet balances: b3os_balance_lookup (address, chainIds, limit)
-- DeFi positions: b3os_defi_lookup (address, chainId)
+- DeFi positions: b3os_defi_lookup (address, chainId — all protocols combined)
 - Tx debugging: b3os_debug_transaction (txHash, chainId)
 - Polymarket: b3os_polymarket_lookup (query, slug, or marketUrl)
+- Polymarket traders: b3os_polymarket_traders (leaderboard, profile, holders)
+- Hyperliquid account: b3os_hyperliquid_account (positions, margin, orders)
+- Hyperliquid markets: b3os_hyperliquid_markets (available perp/TradFi markets)
+- Hyperliquid funding: b3os_hyperliquid_funding (funding rates, OI, volume — Hyperliquid only)
+- Coinglass futures: b3os_coinglass_markets (OI, funding, liquidations — cross-exchange aggregate)
+- Coinglass whales: b3os_coinglass_whales (whale positions, alerts, address tracking)
+- Morpho yields: b3os_morpho_yields (best APY, vault APY, positions, rewards — Morpho-specific)
 - Any other read-only query: b3os_query_action (use b3os_search_actions to find action types first)
+
+DATA SOURCE SELECTION:
+- For Hyperliquid-specific data (positions, trades, account): use b3os_hyperliquid_* tools
+- For cross-exchange derivatives overview (all CEX/DEX combined): use b3os_coinglass_markets
+- For Morpho vault yields specifically: use b3os_morpho_yields (NOT b3os_defi_lookup)
+- For all DeFi positions across protocols: use b3os_defi_lookup
+- For funding rates: b3os_hyperliquid_funding = Hyperliquid only; b3os_coinglass_markets = all exchanges
+- For Polymarket market data: b3os_polymarket_lookup; for trader analytics: b3os_polymarket_traders
 
 ONE-SHOT EXECUTION (no workflow needed):
 - b3os_run_action for any single action — reads AND writes (queries, swaps, deposits,
   leverage changes, sends). Faster than building a workflow for one-off operations.
 - b3os_run_ephemeral for multi-step definitions (max 20 nodes, 60s timeout)
 
-DATABASE (org's SQLite-compatible database, READ-ONLY via MCP):
+DATABASE (org's database, READ-ONLY via MCP):
 - ALWAYS call b3os_list_tables FIRST to check what already exists before querying
 - b3os_get_table_schema → inspect column definitions of existing tables
 - b3os_query_database → execute read-only SQL (SELECT only). Write operations
@@ -198,6 +218,7 @@ export function createServer(): McpServer {
   registerBlockchainTools(server);
   registerDatabaseTools(server);
   registerLookupTools(server);
+  registerExtendedLookupTools(server);
   registerTemplateTools(server);
   registerCaddieTools(server);
 
