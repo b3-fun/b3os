@@ -306,6 +306,16 @@ export const ALLOWLIST = [
     reason:
       "Setup wizard builds the OAuth redirect URL with 127.0.0.1 (not localhost) to avoid IPv6 resolution issues; comment on same line explains the rationale",
   },
+  // Load-bearing loopback references in the API client.
+  // getServerUrl() enforces HTTPS but exempts localhost/127.0.0.1 for local
+  // development. The regex and the error message both reference "localhost".
+  {
+    rule: "loopback-literal",
+    file: "dist/client.js",
+    match: /127\.0\.0\.1|localhost/,
+    reason:
+      "getServerUrl() HTTPS enforcement regex exempts localhost and 127.0.0.1 for local development",
+  },
   // Official vendor / support / CI email domains — not personal addresses.
   // These appear in package.json, README, and generated dist files as
   // repository author, support contact, or CI bot email addresses.
