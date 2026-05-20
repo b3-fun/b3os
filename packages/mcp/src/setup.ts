@@ -163,9 +163,13 @@ function promptSetupChoice(): Promise<"signin" | "quickstart"> {
       output: process.stdout,
     });
     rl.once("line", (line: string) => {
-      const choice = line.trim();
-      resolve(choice === "2" ? "quickstart" : "signin");
       rl.close();
+      const choice = line.trim();
+      if (choice === "2") {
+        resolve("quickstart");
+      } else {
+        resolve("signin");
+      }
     });
     rl.once("close", () => resolve("signin"));
   });
@@ -293,7 +297,7 @@ function linkGlobally(): LinkResult {
  * (e.g. when Claude Code spawns the MCP server process).
  */
 function buildServerEntry(
-  apiKey: string,
+  apiKey: string | undefined,
   useGlobalCommand: boolean,
   keystoreKind: KeystoreKind,
   opts?: { type?: string },
@@ -303,7 +307,7 @@ function buildServerEntry(
     : { command: process.execPath, args: [getServerEntryPath()] };
 
   if (opts?.type) entry.type = opts.type;
-  if (keystoreKind === "plaintext-fallback") {
+  if (keystoreKind === "plaintext-fallback" && apiKey) {
     entry.env = { B3OS_API_KEY: apiKey, B3OS_SERVER_URL };
   } else {
     entry.env = { B3OS_SERVER_URL };
@@ -502,7 +506,7 @@ interface McpJson {
  */
 function writeMcpJsonEntry(
   filePath: string,
-  apiKey: string,
+  apiKey: string | undefined,
   useGlobalCommand: boolean,
   keystoreKind: KeystoreKind,
   opts?: { type?: string },
@@ -606,14 +610,50 @@ ${BRAND}  ╚═════╝ ╚═════╝  ╚═════╝ ╚
   ${DIM}MCP server setup — connect Claude to B3OS${RESET}
 `;
 
+async function verifyExistingKey(serverUrl: string): Promise<boolean> {
+  const existingKey = await readApiKey().catch(() => null);
+  if (!existingKey) return false;
+
+  try {
+    const res = await fetch(`${serverUrl}/v1/organizations`, {
+      headers: { Authorization: `Bearer ${existingKey}` },
+      signal: AbortSignal.timeout(5_000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 async function quickStartFlow(serverUrl: string): Promise<void> {
-  const { callBootstrap } = await import("./bootstrap-api.js");
-
-  process.stdout.write("\n  Provisioning account...\n");
-  const result = await callBootstrap(serverUrl);
-
   const keystoreKind = detectKeystore();
-  await storeApiKey(result.apiKey);
+
+  // If we already have a working key, skip bootstrap to avoid revoking it.
+  // Every /v1/bootstrap call from the same IP revokes the previous key and
+  // issues a new one — re-running setup should not break an existing session.
+  const existingKeyValid = await verifyExistingKey(serverUrl);
+  if (existingKeyValid) {
+    process.stdout.write(
+      "\n  ✓ Existing API key is still valid — skipping provisioning.\n",
+    );
+  } else {
+    const { callBootstrap } = await import("./bootstrap-api.js");
+
+    process.stdout.write("\n  Provisioning account...\n");
+    const result = await callBootstrap(serverUrl);
+
+    await storeApiKey(result.apiKey);
+
+    process.stdout.write(
+      `\n  ✓ Connected to B3OS (${result.orgSlug})\n\n` +
+        `  Your account is ready with ${result.initialCuGrant} CU.\n` +
+        (result.claimUrl
+          ? `  To claim this account and add your email:\n    ${result.claimUrl}\n\n` +
+            `  Claim is optional — you can start using B3OS now.\n`
+          : "") +
+        "\n",
+    );
+  }
 
   ensureBuild();
   const linkResult = linkGlobally();
@@ -622,7 +662,7 @@ async function quickStartFlow(serverUrl: string): Promise<void> {
   const userScopeMcpJson = join(homedir(), ".claude", "mcp.json");
   writeMcpJsonEntry(
     userScopeMcpJson,
-    result.apiKey,
+    undefined,
     useGlobalCommand,
     keystoreKind,
     {
@@ -636,12 +676,7 @@ async function quickStartFlow(serverUrl: string): Promise<void> {
   writeJsonConfig(settingsPath, settingsConfig);
 
   process.stdout.write(
-    `\n  ✓ Connected to B3OS (${result.orgSlug})\n\n` +
-      `  Your account is ready with ${result.initialCuGrant} CU.\n` +
-      `  To claim this account and add your email:\n` +
-      `    ${result.claimUrl}\n\n` +
-      `  Claim is optional — you can start using B3OS now.\n` +
-      `\n  Restart Claude Code, then try:\n` +
+    `  Restart Claude Code, then try:\n` +
       `    "Build a workflow that monitors ETH price every 5 min"\n\n`,
   );
 }
