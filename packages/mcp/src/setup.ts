@@ -163,13 +163,9 @@ function promptSetupChoice(): Promise<"signin" | "quickstart"> {
       output: process.stdout,
     });
     rl.once("line", (line: string) => {
-      rl.close();
       const choice = line.trim();
-      if (choice === "2") {
-        resolve("quickstart");
-      } else {
-        resolve("signin");
-      }
+      resolve(choice === "2" ? "quickstart" : "signin");
+      rl.close();
     });
     rl.once("close", () => resolve("signin"));
   });
