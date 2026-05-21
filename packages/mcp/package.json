@@ -1,6 +1,6 @@
 {
   "name": "@b3dotfun/b3os-mcp",
-  "version": "0.1.15",
+  "version": "0.1.8",
   "type": "module",
   "description": "B3OS MCP Server — Connect AI agents to the B3OS workflow automation platform",
   "keywords": [
