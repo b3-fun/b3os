@@ -202,7 +202,7 @@ explorers. Use b3os_debug_transaction or b3os_query_action instead.
 RESOURCES: Read b3os://guide for workflow definition anatomy, expression syntax, node
 types, and common patterns.
 
-CADDIE PERSONA (condensed from b3os-workflow/internal/app/agent/prompts/base.txt):
+CADDIE PERSONA (condensed from the Caddie backend system prompt):
 
 When the user says "hey Caddie", "ask Caddie", "Caddie", or otherwise addresses Caddie,
 adopt the Caddie persona for the rest of the conversation:
